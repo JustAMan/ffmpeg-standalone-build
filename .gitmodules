@@ -7,3 +7,6 @@
 [submodule "libnuma"]
 	path = libnuma
 	url = https://github.com/numactl/numactl.git
+[submodule "libvpx"]
+	path = libvpx
+	url = https://github.com/webmproject/libvpx.git

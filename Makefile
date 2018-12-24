@@ -12,6 +12,7 @@ YASM=$(PREFIX)/bin/yasm
 LIBNUMA=$(PREFIX)/lib/libnuma.a
 X264=$(PREFIX)/lib/libx264.a
 X265=$(PREFIX)/lib/libx265.a
+LIBVPX=$(PREFIX)/lib/libvpx.a
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -88,7 +89,17 @@ $(X265): $(X265_DIR)/Makefile
 	$(MAKE) -C $(X265_DIR) install	
 	
 
-all: $(X265)
+LIBVPX_DIR := $(CURDIR)/libvpx
+$(LIBVPX_DIR)/config.status: tools
+	@echo Configuring libvpx
+	cd $(LIBVPX_DIR) && \
+		./configure --prefix=$(PREFIX) --cpu=$(TUNE_CPU) --enable-pic --disable-examples --disable-unit-tests --as=yasm --disable-docs --enable-vp9-highbitdepth --enable-better-hw-compatibility --enable-vp8 --enable-vp9 --enable-postproc --enable-vp9-postproc  --enable-vp9-temporal-denoising --enable-webm-io  --enable-libyuv --disable-dependency-tracking --enable-pic
+$(LIBVPX): $(LIBVPX_DIR)/config.status
+	@echo Building libvpx
+	$(MAKE) -C $(LIBVPX_DIR) -j $(CORES) || $(MAKE) -C $(LIBVPX_DIR)
+	$(MAKE) -C $(LIBVPX_DIR) install
+
+all: $(LIBVPX)
 
 clean:
 	rm -rf $(NASM_DIR)
@@ -97,6 +108,7 @@ clean:
 	cd $(LIBNUMA) && git clean -fxd
 	cd $(X264_DIR) && git clean -fxd
 	cd $(X265_DIR) && git clean -fxd
+	cd $(LIBVPX_DIR) && git clean -fxd
 
 .PHONY: all clean tools
 #.SILENT:
