@@ -1,3 +1,9 @@
 [submodule "libx264"]
 	path = libx264
 	url = https://git.videolan.org/git/x264
+[submodule "libx265"]
+	path = libx265
+	url = https://github.com/videolan/x265.git
+[submodule "libnuma"]
+	path = libnuma
+	url = https://github.com/numactl/numactl.git
