@@ -16,6 +16,7 @@ X265=$(PREFIX)/lib/libx265.so
 LIBVPX=$(PREFIX)/lib/libvpx.so
 LAME=$(PREFIX)/lib/libmp3lame.so
 OPUS=$(PREFIX)/lib/libopus.so
+AOM=$(PREFIX)/lib/libaom.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -126,7 +127,18 @@ $(OPUS): $(OPUS_DIR)/config.h
 	$(MAKE) -C $(OPUS_DIR) -j $(CORES) || $(MAKE) -C $(OPUS_DIR)
 	$(MAKE) -C $(OPUS_DIR) install
 
-all: $(OPUS)
+AOM_DIR := $(CURDIR)/aom
+$(AOM_DIR)/aom_build/Makefile: $(TOOLS)
+	@echo Configuring aom
+	mkdir -p "$(AOM_DIR)/aom_build"
+	cd $(AOM_DIR)/aom_build && \
+		 cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DENABLE_SHARED=on -DENABLE_NASM=on .. -DBUILD_SHARED_LIBS=on -DCONFIG_PIC=on -DCONFIG_SHARED=on -DCONFIG_STATIC=no -DENABLE_EXAMPLES=off -DENABLE_TESTDATA=off -DENABLE_TESTS=off 
+$(AOM): $(AOM_DIR)/aom_build/Makefile
+	@echo Building aom 
+	$(MAKE) -C $(AOM_DIR)/aom_build -j $(CORES) || $(MAKE) -C $(AOM_DIR)/aom_build 
+	$(MAKE) -C $(AOM_DIR)/aom_build install
+
+all: $(AOM)
 
 clean:
 	rm -rf $(NASM_DIR)

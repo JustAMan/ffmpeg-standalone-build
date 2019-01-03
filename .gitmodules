@@ -13,3 +13,6 @@
 [submodule "opus"]
 	path = opus
 	url = https://github.com/xiph/opus.git
+[submodule "aom"]
+	path = aom
+	url = https://aomedia.googlesource.com/aom
