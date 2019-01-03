@@ -15,6 +15,7 @@ X264=$(PREFIX)/lib/libx264.so
 X265=$(PREFIX)/lib/libx265.so
 LIBVPX=$(PREFIX)/lib/libvpx.so
 LAME=$(PREFIX)/lib/libmp3lame.so
+OPUS=$(PREFIX)/lib/libopus.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -114,7 +115,18 @@ $(LAME): $(LAME_DIR)/config.h
 	$(MAKE) -C $(LAME_DIR) -j $(CORES) || $(MAKE) -C $(LAME_DIR)
 	$(MAKE) -C $(LAME_DIR) install
 
-all: $(LAME)
+OPUS_DIR := $(CURDIR)/opus
+$(OPUS_DIR)/config.h: $(TOOLS)
+	@echo Configuring opus
+	cd $(OPUS_DIR) && \
+		./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-doc --disable-extra-programs --with-pic
+$(OPUS): $(OPUS_DIR)/config.h
+	@echo Building opus
+	$(MAKE) -C $(OPUS_DIR) -j $(CORES) || $(MAKE) -C $(OPUS_DIR)
+	$(MAKE) -C $(OPUS_DIR) install
+
+all: $(OPUS)
 
 clean:
 	rm -rf $(NASM_DIR)
@@ -125,6 +137,7 @@ clean:
 	cd $(X265_DIR) && git clean -fxd
 	cd $(LIBVPX_DIR) && git clean -fxd
 	rm -rf $(LAME_DIR)
+	cd $(OPUS_DIR) && git clean -fxd
 
 .PHONY: all clean 
 #.SILENT:

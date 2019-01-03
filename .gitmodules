@@ -10,3 +10,6 @@
 [submodule "libvpx"]
 	path = libvpx
 	url = https://github.com/webmproject/libvpx.git
+[submodule "opus"]
+	path = opus
+	url = https://github.com/xiph/opus.git
