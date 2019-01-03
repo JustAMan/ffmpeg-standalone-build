@@ -2,3 +2,5 @@ dependencies.stamp
 nasm-2.13.03
 prefix
 yasm-1.3.0
+tools.stamp
+lame-3.100

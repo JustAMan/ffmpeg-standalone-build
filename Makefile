@@ -14,6 +14,7 @@ LIBNUMA=$(PREFIX)/lib/libnuma.so
 X264=$(PREFIX)/lib/libx264.so
 X265=$(PREFIX)/lib/libx265.so
 LIBVPX=$(PREFIX)/lib/libvpx.so
+LAME=$(PREFIX)/lib/libmp3lame.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -101,7 +102,19 @@ $(LIBVPX): $(LIBVPX_DIR)/config.mk
 	$(MAKE) -C $(LIBVPX_DIR) -j $(CORES) || $(MAKE) -C $(LIBVPX_DIR)
 	$(MAKE) -C $(LIBVPX_DIR) install
 
-all: $(LIBVPX) $(X264) $(X265)
+LAME_DIR := $(CURDIR)/lame-3.100
+$(LAME_DIR)/config.h: $(TOOLS) $(LAME_DIR).tar.gz
+	@echo Configuring lame
+	rm -rf $(LAME_DIR)
+	tar xf $(LAME_DIR).tar.gz
+	cd $(LAME_DIR) && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --enable-nasm --disable-dependency-tracking --disable-frontend --with-pic  
+$(LAME): $(LAME_DIR)/config.h
+	@echo Building lame
+	$(MAKE) -C $(LAME_DIR) -j $(CORES) || $(MAKE) -C $(LAME_DIR)
+	$(MAKE) -C $(LAME_DIR) install
+
+all: $(LAME)
 
 clean:
 	rm -rf $(NASM_DIR)
@@ -111,6 +124,7 @@ clean:
 	cd $(X264_DIR) && git clean -fxd
 	cd $(X265_DIR) && git clean -fxd
 	cd $(LIBVPX_DIR) && git clean -fxd
+	rm -rf $(LAME_DIR)
 
 .PHONY: all clean 
 #.SILENT:
