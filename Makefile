@@ -198,6 +198,7 @@ $(FREETYPE): $(FREETYPE_DIR)/builds/unix/ftconfig.h
 FRIBIDI_DIR := $(CURDIR)/fribidi
 $(FRIBIDI_DIR)/config.h: $(TOOLS)
 	@echo Configuring fribidi
+	rm -f $@
 	cd $(FRIBIDI_DIR) && \
 		NOCONFIGURE=1 ./autogen.sh && \
 		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-deprecated
@@ -246,6 +247,7 @@ $(AUTOMAKE): $(AUTOMAKE_DIR)/Makefile
 LIBXML_DIR := $(CURDIR)/libxml2
 $(LIBXML_DIR)/config.h: $(TOOLS)
 	@echo Configuring libxml 
+	rm -f $@
 	cd $(LIBXML_DIR) && \
 		libtoolize && \
 		CFLAGS="-mtune=$(TUNE_CPU)" ./autogen.sh "--prefix=$(PREFIX)" --disable-dependency-tracking --with-python=no
@@ -258,6 +260,7 @@ $(LIBXML): $(LIBXML_DIR)/config.h
 FONTCONFIG_DIR := $(CURDIR)/fontconfig
 $(FONTCONFIG_DIR)/config.h: $(TOOLS) $(GETTEXT) $(AUTOCONF) $(AUTOMAKE) $(LIBXML)
 	@echo Configuring fontconfig
+	rm -f $@
 	cd $(FONTCONFIG_DIR) && \
 		CFLAGS="-mtune=$(TUNE_CPU)" ./autogen.sh "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --disable-docs --enable-libxml2 
 
@@ -269,6 +272,7 @@ $(FONTCONFIG): $(FONTCONFIG_DIR)/config.h
 ASS_DIR := $(CURDIR)/libass
 $(ASS_DIR)/config.h: $(TOOLS) $(FREETYPE) $(FRIBIDI) $(FONTCONFIG)
 	@echo Configuring libass
+	rm -f $@
 	cd $(ASS_DIR) && ./autogen.sh && \
 		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --with-pic
 $(ASS): $(ASS_DIR)/config.h
