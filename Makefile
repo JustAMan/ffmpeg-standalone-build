@@ -25,6 +25,8 @@ FONTCONFIG=$(PREFIX)/lib/libfontconfig.so
 BZIP=$(PREFIX)/lib/libbz2.a
 PNG=$(PREFIX)/lib/libpng.so
 ZLIB=$(PREFIX)/lib/libz.so
+GETTEXT=$(PREFIX)/bin/gettext
+AUTOCONF=$(PREFIX)/bin/autoconf
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -201,15 +203,46 @@ $(FRIBIDI): $(FRIBIDI_DIR)/config.h
 	$(MAKE) -C $(FRIBIDI_DIR) -j $(CORES) || $(MAKE) -C $(FRIBIDI_DIR)
 	$(MAKE) -C $(FRIBIDI_DIR) install
 
+GETTEXT_DIR := $(CURDIR)/gettext-0.19.8
+$(GETTEXT_DIR)/gettext-tools/config.h: $(TOOLS) $(GETTEXT_DIR).tar.gz
+	@echo Configuring gettext
+	rm -rf $(GETTEXT_DIR)
+	tar xf $(GETTEXT_DIR).tar.gz
+	cd $(GETTEXT_DIR) && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --disable-java --disable-native-java --disable-curses --without-git 
+		
+$(GETTEXT): $(GETTEXT_DIR)/gettext-tools/config.h
+	@echo Building gettext 
+	$(MAKE) -C $(GETTEXT_DIR) -j $(CORES) || $(MAKE) -C $(GETTEXT_DIR)
+	$(MAKE) -C $(GETTEXT_DIR) install
+
+AUTOCONF_DIR := $(CURDIR)/autoconf-2.69
+$(AUTOCONF_DIR)/Makefile: $(TOOLS) $(AUTOCONF_DIR).tar.gz
+	@echo Configuring autoconf
+	rm -rf $(AUTOCONF_DIR)
+	tar xf $(AUTOCONF_DIR).tar.gz
+	cd $(AUTOCONF_DIR) && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)"
+$(AUTOCONF): $(AUTOCONF_DIR)/Makefile
+	@echo Building autoconf 
+	$(MAKE) -C $(AUTOCONF_DIR) -j $(CORES) || $(MAKE) -C $(AUTOCONF_DIR)
+	$(MAKE) -C $(AUTOCONF_DIR) install
+
+
 FONTCONFIG_DIR := $(CURDIR)/fontconfig
-$(FONTCONFIG_DIR)/config.h: $(TOOLS)
+$(FONTCONFIG_DIR)/config.h: $(TOOLS) $(GETTEXT) $(AUTOCONF)
 	@echo Configuring fontconfig
 	cd $(FONTCONFIG_DIR) && \
 		NOCONFIGURE=1 ./autogen.sh \
-		NOT IMPLEMENTED!!
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --disable-docs 
+
+$(FONTCONFIG): $(FONTCONFIG_DIR)/config.h
+	@echo Building fontconfig 
+	$(MAKE) -C $(FONTCONFIG_DIR) -j $(CORES) || $(MAKE) -C $(FONTCONFIG_DIR)
+	$(MAKE) -C $(FONTCONFIG_DIR) install
 
 ASS_DIR := $(CURDIR)/libass
-$(ASS_DIR)/config.h: $(TOOLS) $(FREETYPE) $(FRIBIDI)
+$(ASS_DIR)/config.h: $(TOOLS) $(FREETYPE) $(FRIBIDI) $(FONTCONFIG)
 	@echo Configuring libass
 	cd $(ASS_DIR) && ./autogen.sh && \
 		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --with-pic
