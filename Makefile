@@ -30,6 +30,8 @@ GETTEXT=$(PREFIX)/bin/gettext
 AUTOCONF=$(PREFIX)/bin/autoconf
 AUTOMAKE=$(PREFIX)/bin/automake
 LIBXML=$(PREFIX)/lib/libxml2.so
+BLURAY=$(PREFIX)/lib/libbluray.so
+UDFREAD=$(PREFIX)/lib/libudfread.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -280,7 +282,31 @@ $(ASS): $(ASS_DIR)/config.h
 	$(MAKE) -C $(ASS_DIR) -j $(CORES) || $(MAKE) -C $(ASS_DIR)
 	$(MAKE) -C $(ASS_DIR) install
 
-all: $(ASS)
+UDFREAD_DIR:= $(CURDIR)/libudfread
+$(UDFREAD_DIR)/config.h: $(TOOLS)
+	@echo Configuring udfread
+	rm -f $@
+	cd $(UDFREAD_DIR) && ./bootstrap && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)"
+$(UDFREAD): $(UDFREAD_DIR)/config.h
+	@echo Building udfread
+	$(MAKE) -C $(UDFREAD_DIR) -j $(CORES) || $(MAKE) -C $(UDFREAD_DIR)
+	$(MAKE) -C $(UDFREAD_DIR) install
+
+
+BLURAY_DIR := $(CURDIR)/libbluray
+$(BLURAY_DIR)/config.h: $(TOOLS) $(UDFREAD)
+	@echo Configuring bluray 
+	rm -f $@
+	cd $(BLURAY_DIR) && git submodule update --init --recursive
+	cd $(BLURAY_DIR) && ./bootstrap && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --disable-bdjava-jar
+$(BLURAY): $(BLURAY_DIR)/config.h
+	@echo Building bluray 
+	$(MAKE) -C $(BLURAY_DIR) -j $(CORES) || $(MAKE) -C $(BLURAY_DIR)
+	$(MAKE) -C $(BLURAY_DIR) install
+
+all: $(BLURAY)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:

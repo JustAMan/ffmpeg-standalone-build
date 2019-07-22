@@ -37,3 +37,9 @@
 [submodule "libxml2"]
 	path = libxml2
 	url = https://gitlab.gnome.org/GNOME/libxml2.git
+[submodule "libbluray"]
+	path = libbluray
+	url = https://code.videolan.org/videolan/libbluray.git
+[submodule "libudfread"]
+	path = libudfread
+	url = https://git.videolan.org/git/libudfread.git
