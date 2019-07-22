@@ -1,6 +1,7 @@
 CORES := 8
-TUNE_CPU := core2 
+TUNE_CPU := core2
 PREFIX = $(CURDIR)/prefix
+NONFREE := --enable-nonfree --enable-libfdk-aac # set to empty if plan to redistribute
 
 export PATH := $(PREFIX)/bin:$(PATH)
 export PKG_CONFIG_PATH := $(PREFIX)/lib/pkgconfig:$(PKG_CONFIG_PATH)
@@ -17,6 +18,13 @@ LIBVPX=$(PREFIX)/lib/libvpx.so
 LAME=$(PREFIX)/lib/libmp3lame.so
 OPUS=$(PREFIX)/lib/libopus.so
 AOM=$(PREFIX)/lib/libaom.so
+ASS=$(PREFIX)/lib/libass.so
+FREETYPE=$(PREFIX)/lib/libfreetype.so
+FRIBIDI=$(PREFIX)/lib/libfribidi.so
+FONTCONFIG=$(PREFIX)/lib/libfontconfig.so
+BZIP=$(PREFIX)/lib/libbz2.a
+PNG=$(PREFIX)/lib/libpng.so
+ZLIB=$(PREFIX)/lib/libz.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -32,7 +40,10 @@ $(DEPS): $(PREFIX)
 	  libtool \
 	  pkg-config \
 	  texinfo \
-	  wget
+	  wget \
+	  gperf \
+	  gettext \
+	  autopoint
 	touch "$@"
 
 NASM_DIR := nasm-2.13.03
@@ -138,7 +149,105 @@ $(AOM): $(AOM_DIR)/aom_build/Makefile
 	$(MAKE) -C $(AOM_DIR)/aom_build -j $(CORES) || $(MAKE) -C $(AOM_DIR)/aom_build 
 	$(MAKE) -C $(AOM_DIR)/aom_build install
 
-all: $(AOM)
+BZIP_DIR := $(CURDIR)/bzip2-1.0.6
+$(BZIP): $(TOOLS) $(BZIP_DIR).tar.gz
+	@echo Building bzip
+	rm -rf $(BZIP_DIR)
+	tar xf $(BZIP_DIR).tar.gz
+	$(MAKE) -C $(BZIP_DIR) "PREFIX=$(PREFIX)" CC="gcc -fPIC" install
+ZLIB_DIR := $(CURDIR)/zlib
+$(ZLIB_DIR)/zconf.h: $(TOOLS)
+	@echo Configuring zlib
+	cd $(ZLIB_DIR) && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)"
+$(ZLIB): $(ZLIB_DIR)/zconf.h
+	@echo Building zlib 
+	$(MAKE) -C $(ZLIB_DIR) -j $(CORES) || $(MAKE) -C $(ZLIB_DIR)
+	$(MAKE) -C $(ZLIB_DIR) install
+
+
+PNG_DIR := $(CURDIR)/libpng
+$(PNG_DIR)/config.h: $(TOOLS) $(ZLIB)
+	@echo Configuring libpng
+	cd $(PNG_DIR) && \
+		CFLAGS="-mtune=$(TUNE_CPU) `pkg-config zlib --cflags`" LDFLAGS="`pkg-config zlib --libs`" CPPFLAGS="`pkg-config zlib --cflags`" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --enable-hardware-optimizations=yes --enable-intel-sse=yes
+
+$(PNG): $(PNG_DIR)/config.h 
+	@echo Building libpng 
+	$(MAKE) -C $(PNG_DIR) -j $(CORES) || $(MAKE) -C $(PNG_DIR)
+	$(MAKE) -C $(PNG_DIR) install
+
+FREETYPE_DIR := $(CURDIR)/freetype-2.9
+$(FREETYPE_DIR)/builds/unix/config.h: $(TOOLS) $(FREETYPE_DIR).tar.gz $(BZIP) $(PNG)
+	@echo Configuring freetype
+	rm -rf $(FREETYPE_DIR)
+	tar xf $(FREETYPE_DIR).tar.gz
+	cd $(FREETYPE_DIR) && \
+		./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" BZIP2_CFLAGS="-I$(PREFIX)/include" BZIP2_LIBS="-L$(PREFIX)/lib -lbz2" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --with-zlib=no --with-bzip2=yes --with-png=yes
+$(FREETYPE): $(FREETYPE_DIR)/builds/unix/config.h
+	@echo Building freetype
+	$(MAKE) -C $(FREETYPE_DIR) -j $(CORES) || $(MAKE) -C $(FREETYPE_DIR)
+	$(MAKE) -C $(FREETYPE_DIR) install
+
+FRIBIDI_DIR := $(CURDIR)/fribidi
+$(FRIBIDI_DIR)/config.h: $(TOOLS)
+	@echo Configuring fribidi
+	cd $(FRIBIDI_DIR) && \
+		NOCONFIGURE=1 ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-deprecated
+$(FRIBIDI): $(FRIBIDI_DIR)/config.h
+	@echo Building fribidi
+	$(MAKE) -C $(FRIBIDI_DIR) -j $(CORES) || $(MAKE) -C $(FRIBIDI_DIR)
+	$(MAKE) -C $(FRIBIDI_DIR) install
+
+FONTCONFIG_DIR := $(CURDIR)/fontconfig
+$(FONTCONFIG_DIR)/config.h: $(TOOLS)
+	@echo Configuring fontconfig
+	cd $(FONTCONFIG_DIR) && \
+		NOCONFIGURE=1 ./autogen.sh \
+		NOT IMPLEMENTED!!
+
+ASS_DIR := $(CURDIR)/libass
+$(ASS_DIR)/config.h: $(TOOLS) $(FREETYPE) $(FRIBIDI)
+	@echo Configuring libass
+	cd $(ASS_DIR) && ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --with-pic
+$(ASS): $(ASS_DIR)/config.h
+	@echo Building libass
+	$(MAKE) -C $(ASS_DIR) -j $(CORES) || $(MAKE) -C $(ASS_DIR)
+	$(MAKE) -C $(ASS_DIR) install
+
+all: $(ASS)
+
+FFMPEG_DIR := $(CURDIR)/ffmpeg
+ff:
+	@echo Configuring ffmpeg
+	cd "$(FFMPEG_DIR)" && \
+		./configure --prefix="${PREFIX}" --pkg-config-flags="--static" \
+			--extra-cflags="-I${PREFIX}/include -mtune=${TUNE_CPU}" \
+			'--extra-ldflags=-L${PREFIX}/lib -Wl,-rpath=\\\$\$ORIGIN/../lib -Wl,-z,origin' \
+			 --extra-libs="-lpthread -lm" --enable-gpl --enable-version3 \
+			 ${NONFREE} --enable-libaom --enable-libass --enable-libbluray \
+			--enable-libbs2b --enable-libcaca --enable-libcdio  --enable-libfontconfig \
+			--enable-libfreetype --enable-libfribidi --enable-libmp3lame \
+			--enable-libopenjpeg --enable-libopenmpt --enable-libopus \
+			--enable-librubberband --enable-libsrt --enable-libtheora \
+			--enable-libtwolame --enable-libvidstab --enable-libvpx --enable-libwebp \
+			--enable-libx264 --enable-libx265 --enable-libxml2 --enable-libmysofa \
+			--enable-libdrm --enable-vaapi --cpu="${TUNE_CPU}" --x86asmexe=nasm \
+			--enable-asm  --enable-mmx --enable-mmxext --enable-sse --enable-sse2 \
+			--enable-sse3 --enable-ssse3 --enable-sse4 --enable-sse42 --enable-avx \
+			--enable-avx2 --disable-fast-unaligned --enable-hwaccel=h264_nvdec \
+			--enable-hwaccel=h264_vaapi --enable-hwaccel=hevc_nvdec \
+			--enable-hwaccel=hevc_vaapi --enable-hwaccel=vp8_nvdec \
+			--enable-hwaccel=vp8_vaapi --enable-hwaccel=vp9_nvdec \
+			--enable-hwaccel=vp9_vaapi --enable-encoder=h264_nvenc \
+			--enable-encoder=h264_vaapi --enable-encoder=hevc_nvenc \
+			--enable-encoder=hevc_vaapi --enable-encoder=mpeg2_vaapi \
+			--enable-encoder=nvenc --enable-encoder=nvenc_h264 \
+			--enable-encoder=nvenc_hevc --enable-encoder=vp9_vaapi
+		
 
 clean:
 	rm -rf $(NASM_DIR)
@@ -150,7 +259,8 @@ clean:
 	cd $(LIBVPX_DIR) && git clean -fxd
 	rm -rf $(LAME_DIR)
 	cd $(OPUS_DIR) && git clean -fxd
+	# TODO: add AOM and further
 
-.PHONY: all clean 
+.PHONY: all clean ff
 #.SILENT:
 .DEFAULT_GOAL := all
