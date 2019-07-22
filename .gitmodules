@@ -25,3 +25,9 @@
 [submodule "fribidi"]
 	path = fribidi
 	url = https://github.com/fribidi/fribidi.git
+[submodule "fontconfig"]
+	path = fontconfig
+	url = https://github.com/freedesktop/fontconfig.git
+[submodule "libpng"]
+	path = libpng
+	url = https://github.com/glennrp/libpng.git
