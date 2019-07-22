@@ -5,6 +5,7 @@ NONFREE := --enable-nonfree --enable-libfdk-aac # set to empty if plan to redist
 
 export PATH := $(PREFIX)/bin:$(PATH)
 export PKG_CONFIG_PATH := $(PREFIX)/lib/pkgconfig:$(PKG_CONFIG_PATH)
+export ACLOCAL_PATH := /usr/share/aclocal
 
 DEPS=$(CURDIR)/dependencies.stamp
 TOOLS=$(CURDIR)/tools.stamp
@@ -27,6 +28,8 @@ PNG=$(PREFIX)/lib/libpng.so
 ZLIB=$(PREFIX)/lib/libz.so
 GETTEXT=$(PREFIX)/bin/gettext
 AUTOCONF=$(PREFIX)/bin/autoconf
+AUTOMAKE=$(PREFIX)/bin/automake
+LIBXML=$(PREFIX)/lib/libxml2.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -228,13 +231,35 @@ $(AUTOCONF): $(AUTOCONF_DIR)/Makefile
 	$(MAKE) -C $(AUTOCONF_DIR) -j $(CORES) || $(MAKE) -C $(AUTOCONF_DIR)
 	$(MAKE) -C $(AUTOCONF_DIR) install
 
+AUTOMAKE_DIR := $(CURDIR)/automake-1.16.1
+$(AUTOMAKE_DIR)/Makefile: $(TOOLS) $(AUTOMAKE_DIR).tar.gz
+	@echo Configuring automake
+	rm -rf $(AUTOMAKE_DIR)
+	tar xf $(AUTOMAKE_DIR).tar.gz
+	cd $(AUTOMAKE_DIR) && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)"
+$(AUTOMAKE): $(AUTOMAKE_DIR)/Makefile
+	@echo Building automake
+	$(MAKE) -C $(AUTOMAKE_DIR) -j $(CORES) || $(MAKE) -C $(AUTOMAKE_DIR)
+	$(MAKE) -C $(AUTOMAKE_DIR) install
+
+LIBXML_DIR := $(CURDIR)/libxml2
+$(LIBXML_DIR)/config.h: $(TOOLS)
+	@echo Configuring libxml 
+	cd $(LIBXML_DIR) && \
+		libtoolize && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./autogen.sh "--prefix=$(PREFIX)" --disable-dependency-tracking --with-python=no
+$(LIBXML): $(LIBXML_DIR)/config.h
+	@echo Building libxml 
+	$(MAKE) -C $(LIBXML_DIR) -j $(CORES) || $(MAKE) -C $(LIBXML_DIR)
+	$(MAKE) -C $(LIBXML_DIR) install
+	
 
 FONTCONFIG_DIR := $(CURDIR)/fontconfig
-$(FONTCONFIG_DIR)/config.h: $(TOOLS) $(GETTEXT) $(AUTOCONF)
+$(FONTCONFIG_DIR)/config.h: $(TOOLS) $(GETTEXT) $(AUTOCONF) $(AUTOMAKE) $(LIBXML)
 	@echo Configuring fontconfig
 	cd $(FONTCONFIG_DIR) && \
-		NOCONFIGURE=1 ./autogen.sh \
-		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --disable-docs 
+		CFLAGS="-mtune=$(TUNE_CPU)" ./autogen.sh "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --disable-docs --enable-libxml2 
 
 $(FONTCONFIG): $(FONTCONFIG_DIR)/config.h
 	@echo Building fontconfig 
