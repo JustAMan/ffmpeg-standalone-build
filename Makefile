@@ -178,14 +178,14 @@ $(PNG): $(PNG_DIR)/config.h
 	$(MAKE) -C $(PNG_DIR) install
 
 FREETYPE_DIR := $(CURDIR)/freetype-2.9
-$(FREETYPE_DIR)/builds/unix/config.h: $(TOOLS) $(FREETYPE_DIR).tar.gz $(BZIP) $(PNG)
+$(FREETYPE_DIR)/builds/unix/ftconfig.h: $(TOOLS) $(FREETYPE_DIR).tar.gz $(BZIP) $(PNG)
 	@echo Configuring freetype
 	rm -rf $(FREETYPE_DIR)
 	tar xf $(FREETYPE_DIR).tar.gz
 	cd $(FREETYPE_DIR) && \
 		./autogen.sh && \
 		CFLAGS="-mtune=$(TUNE_CPU)" BZIP2_CFLAGS="-I$(PREFIX)/include" BZIP2_LIBS="-L$(PREFIX)/lib -lbz2" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --with-zlib=no --with-bzip2=yes --with-png=yes
-$(FREETYPE): $(FREETYPE_DIR)/builds/unix/config.h
+$(FREETYPE): $(FREETYPE_DIR)/builds/unix/ftconfig.h
 	@echo Building freetype
 	$(MAKE) -C $(FREETYPE_DIR) -j $(CORES) || $(MAKE) -C $(FREETYPE_DIR)
 	$(MAKE) -C $(FREETYPE_DIR) install
