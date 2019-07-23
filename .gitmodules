@@ -61,3 +61,6 @@
 [submodule "libmysofa"]
 	path = libmysofa
 	url = https://github.com/hoene/libmysofa.git
+[submodule "openjpeg"]
+	path = openjpeg
+	url = https://github.com/uclouvain/openjpeg.git

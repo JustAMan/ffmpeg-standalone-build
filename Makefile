@@ -40,6 +40,7 @@ PCIACCESS=$(PREFIX)/lib/libpciaccess.so
 XORGMACRO=$(PREFIX)/share/pkgconfig/xorg-macros.pc
 FDK_AAC=$(PREFIX)/lib/libfdk-aac.so
 MYSOFA=$(PREFIX)/lib/libmysofa.so
+OPENJPEG=$(PREFIX)/lib/libopenjp2.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -405,7 +406,18 @@ $(MYSOFA): $(MYSOFA_DIR)/build/Makefile
 	$(MAKE) -C $(MYSOFA_DIR)/build -j $(CORES) || $(MAKE) -C $(MYSOFA_DIR)/build
 	$(MAKE) -C $(MYSOFA_DIR)/build install
 
-all: $(MYSOFA)
+OPENJPEG_DIR := $(CURDIR)/openjpeg
+$(OPENJPEG_DIR)/build/Makefile: $(TOOLS)
+	@echo Configuring openjpeg
+	mkdir -p $(OPENJPEG_DIR)/build
+	cd $(OPENJPEG_DIR)/build && \
+		cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_INSTALL_LIBDIR=lib
+$(OPENJPEG): $(OPENJPEG_DIR)/build/Makefile
+	@echo Building openjpeg 
+	$(MAKE) -C $(OPENJPEG_DIR)/build -j $(CORES) || $(MAKE) -C $(OPENJPEG_DIR)/build
+	$(MAKE) -C $(OPENJPEG_DIR)/build install
+
+all: $(OPENJPEG)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:
