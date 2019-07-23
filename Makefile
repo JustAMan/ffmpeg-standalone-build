@@ -32,6 +32,9 @@ AUTOMAKE=$(PREFIX)/bin/automake
 LIBXML=$(PREFIX)/lib/libxml2.so
 BLURAY=$(PREFIX)/lib/libbluray.so
 UDFREAD=$(PREFIX)/lib/libudfread.so
+BS2B=$(PREFIX)/lib/libbs2b.so
+SNDFILE=$(PREFIX)/lib/libsndfile.so
+PKGCONFIG=$(PREFIX)/bin/pkg-config
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -50,7 +53,8 @@ $(DEPS): $(PREFIX)
 	  wget \
 	  gperf \
 	  gettext \
-	  autopoint
+	  autopoint \
+	  autogen
 	touch "$@"
 
 NASM_DIR := nasm-2.13.03
@@ -306,7 +310,42 @@ $(BLURAY): $(BLURAY_DIR)/config.h
 	$(MAKE) -C $(BLURAY_DIR) -j $(CORES) || $(MAKE) -C $(BLURAY_DIR)
 	$(MAKE) -C $(BLURAY_DIR) install
 
-all: $(BLURAY)
+PKGCONFIG_DIR := $(CURDIR)/pkg-config-0.27.1
+$(PKGCONFIG_DIR)/config.h: $(TOOLS) $(PKGCONFIG_DIR).tar.gz
+	@echo Configuring pkg-config
+	rm -rf $(PKGCONFIG_DIR)
+	tar xf $(PKGCONFIG_DIR).tar.gz
+	cd $(PKGCONFIG_DIR) && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --with-internal-glib
+$(PKGCONFIG): $(PKGCONFIG_DIR)/config.h
+	@echo Building pkg-config
+	$(MAKE) -C $(PKGCONFIG_DIR) -j $(CORES) || $(MAKE) -C $(PKGCONFIG_DIR)
+	$(MAKE) -C $(PKGCONFIG_DIR) install
+
+SNDFILE_DIR := $(CURDIR)/libsndfile
+$(SNDFILE_DIR)/src/config.h: $(TOOLS) $(PKGCONFIG)
+	@echo Configuring sndfile
+	rm -f $@
+	cd $(SNDFILE_DIR) && ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" CPPFLAGS="-I$(PREFIX)/include" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --disable-full-suite
+$(SNDFILE): $(SNDFILE_DIR)/src/config.h
+	@echo Building sndfile
+	$(MAKE) -C $(SNDFILE_DIR) -j $(CORES) || $(MAKE) -C $(SNDFILE_DIR)
+	$(MAKE) -C $(SNDFILE_DIR) install
+
+BS2B_DIR := $(CURDIR)/libbs2b
+$(BS2B_DIR)/Makefile: $(TOOLS) $(SNDFILE)
+	@echo Configuring bs2b
+	rm -f $@
+	cd $(BS2B_DIR) && ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" CPPFLAGS="-I$(PREFIX)/include" LDFLAGS="-L$(PREFIX)/lib" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking
+$(BS2B): $(BS2B_DIR)/Makefile
+	@echo Building bs2db
+	$(MAKE) -C $(BS2B_DIR) -j $(CORES) || $(MAKE) -C $(BS2B_DIR)
+	$(MAKE) -C $(BS2B_DIR) install
+
+
+all: $(BS2B)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:

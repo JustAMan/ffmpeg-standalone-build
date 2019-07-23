@@ -43,3 +43,9 @@
 [submodule "libudfread"]
 	path = libudfread
 	url = https://git.videolan.org/git/libudfread.git
+[submodule "libbs2b"]
+	path = libbs2b
+	url = https://github.com/alexmarsev/libbs2b.git
+[submodule "libsndfile"]
+	path = libsndfile
+	url = https://github.com/erikd/libsndfile.git
