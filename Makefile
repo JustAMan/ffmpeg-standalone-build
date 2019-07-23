@@ -39,6 +39,7 @@ LIBDRM=$(PREFIX)/lib/libdrm.si
 PCIACCESS=$(PREFIX)/lib/libpciaccess.so
 XORGMACRO=$(PREFIX)/share/pkgconfig/xorg-macros.pc
 FDK_AAC=$(PREFIX)/lib/libfdk-aac.so
+MYSOFA=$(PREFIX)/lib/libmysofa.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -393,7 +394,18 @@ $(FDK_AAC): $(FDK_AAC_DIR)/Makefile
 	$(MAKE) -C $(FDK_AAC_DIR) -j $(CORES) || $(MAKE) -C $(FDK_AAC_DIR)
 	$(MAKE) -C $(FDK_AAC_DIR) install
 
-all: $(FDK_AAC)
+MYSOFA_DIR := $(CURDIR)/libmysofa
+$(MYSOFA_DIR)/build/Makefile: $(TOOLS)
+	@echo Configuring mysofa
+	rm -f $@
+	cd $(MYSOFA_DIR)/build && \
+		cmake -DCMAKE_BUILD_TYPE=Release .. -DBUILD_TESTS=off -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_INSTALL_LIBDIR=lib
+$(MYSOFA): $(MYSOFA_DIR)/build/Makefile
+	@echo Building mysofa 
+	$(MAKE) -C $(MYSOFA_DIR)/build -j $(CORES) || $(MAKE) -C $(MYSOFA_DIR)/build
+	$(MAKE) -C $(MYSOFA_DIR)/build install
+
+all: $(MYSOFA)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:
