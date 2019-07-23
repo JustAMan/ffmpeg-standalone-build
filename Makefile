@@ -38,6 +38,7 @@ PKGCONFIG=$(PREFIX)/bin/pkg-config
 LIBDRM=$(PREFIX)/lib/libdrm.si
 PCIACCESS=$(PREFIX)/lib/libpciaccess.so
 XORGMACRO=$(PREFIX)/share/pkgconfig/xorg-macros.pc
+FDK_AAC=$(PREFIX)/lib/libfdk-aac.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -381,7 +382,18 @@ $(LIBDRM): $(LIBDRM_DIR)/config.h
 	$(MAKE) -C $(LIBDRM_DIR) -j $(CORES) || $(MAKE) -C $(LIBDRM_DIR)
 	$(MAKE) -C $(LIBDRM_DIR) install
 
-all: $(LIBDRM)
+FDK_AAC_DIR := $(CURDIR)/fdk-aac
+$(FDK_AAC_DIR)/Makefile: $(TOOLS)
+	@echo Configuring fdk-aac
+	rm -f $@
+	cd $(FDK_AAC_DIR) && libtoolize && ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking --disable-static --disable-example
+$(FDK_AAC): $(FDK_AAC_DIR)/Makefile
+	@echo Building fdk-aac 
+	$(MAKE) -C $(FDK_AAC_DIR) -j $(CORES) || $(MAKE) -C $(FDK_AAC_DIR)
+	$(MAKE) -C $(FDK_AAC_DIR) install
+
+all: $(FDK_AAC)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:

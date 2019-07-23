@@ -55,3 +55,6 @@
 [submodule "xorg-macros"]
 	path = xorg-macros
 	url = https://github.com/freedesktop/xorg-macros.git
+[submodule "fdk-aac"]
+	path = fdk-aac
+	url = https://github.com/mstorsjo/fdk-aac
