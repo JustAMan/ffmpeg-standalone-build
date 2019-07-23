@@ -41,6 +41,9 @@ XORGMACRO=$(PREFIX)/share/pkgconfig/xorg-macros.pc
 FDK_AAC=$(PREFIX)/lib/libfdk-aac.so
 MYSOFA=$(PREFIX)/lib/libmysofa.so
 OPENJPEG=$(PREFIX)/lib/libopenjp2.so
+OPENMPT=$(PREFIX)/lib/libopenmpt.so
+OGG=$(PREFIX)/lib/libogg.so
+VORBIS=$(PREFIX)/lib/libvorbis.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -417,7 +420,43 @@ $(OPENJPEG): $(OPENJPEG_DIR)/build/Makefile
 	$(MAKE) -C $(OPENJPEG_DIR)/build -j $(CORES) || $(MAKE) -C $(OPENJPEG_DIR)/build
 	$(MAKE) -C $(OPENJPEG_DIR)/build install
 
-all: $(OPENJPEG)
+OGG_DIR := $(CURDIR)/libogg
+$(OGG_DIR)/config.h: $(TOOLS)
+	@echo Configuring libogg
+	rm -f $@
+	cd $(OGG_DIR) && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./autogen.sh "--prefix=$(PREFIX)" --disable-dependency-tracking --disable-static
+$(OGG): $(OGG_DIR)/config.h
+	@echo Building ogg
+	$(MAKE) -C $(OGG_DIR) -j $(CORES) || $(MAKE) -C $(OGG_DIR)
+	$(MAKE) -C $(OGG_DIR) install
+
+VORBIS_DIR := $(CURDIR)/vorbis
+$(VORBIS_DIR)/config.h: $(TOOLS)
+	@echo Configuring vorbis
+	rm -f $@
+	cd $(VORBIS_DIR) && ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking --disable-static --disable-docs --disable-examples --disable-oggtest
+$(VORBIS): $(VORBIS_DIR)/config.h
+	@echo Building vorbis 
+	$(MAKE) -C $(VORBIS_DIR) -j $(CORES) || $(MAKE) -C $(VORBIS_DIR)
+	$(MAKE) -C $(VORBIS_DIR) install
+
+
+OPENMPT_DIR := $(CURDIR)/libopenmpt-0.3.13+release.autotools
+$(OPENMPT_DIR)/config.h: $(TOOLS) $(OPENMPT_DIR).tar.gz $(OGG) $(VORBIS)
+	@echo Configuring openmpt
+	rm -rf $(OPENMPT_DIR)
+	tar xf $(OPENMPT_DIR).tar.gz
+	cd "$(OPENMPT_DIR)" && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking --disable-static --disable-examples --disable-openmpt123 --disable-tests --disable-doxygen-doc --without-mpg123
+$(OPENMPT): $(OPENMPT_DIR)/config.h
+	@echo Building openmpt
+	$(MAKE) -C $(OPENMPT_DIR) -j $(CORES) || $(MAKE) -C $(OPENMPT_DIR)
+	$(MAKE) -C $(OPENMPT_DIR) install
+	
+
+all: $(OPENMPT)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:

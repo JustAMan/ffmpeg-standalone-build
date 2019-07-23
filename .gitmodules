@@ -64,3 +64,9 @@
 [submodule "openjpeg"]
 	path = openjpeg
 	url = https://github.com/uclouvain/openjpeg.git
+[submodule "libogg"]
+	path = libogg
+	url = https://github.com/gcp/libogg.git
+[submodule "vorbis"]
+	path = vorbis
+	url = https://github.com/xiph/vorbis.git
