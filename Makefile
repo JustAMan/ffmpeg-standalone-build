@@ -44,6 +44,10 @@ OPENJPEG=$(PREFIX)/lib/libopenjp2.so
 OPENMPT=$(PREFIX)/lib/libopenmpt.so
 OGG=$(PREFIX)/lib/libogg.so
 VORBIS=$(PREFIX)/lib/libvorbis.so
+RUBBER=$(PREFIX)/lib/librubberband.so
+SAMPLERATE=$(PREFIX)/lib/libsamplerate.so
+FFTW=$(PREFIX)/lib/libfftw3.so
+VAMP_SDK=$(PREFIX)/lib/libvamp-sdk.so
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -454,15 +458,64 @@ $(OPENMPT): $(OPENMPT_DIR)/config.h
 	@echo Building openmpt
 	$(MAKE) -C $(OPENMPT_DIR) -j $(CORES) || $(MAKE) -C $(OPENMPT_DIR)
 	$(MAKE) -C $(OPENMPT_DIR) install
-	
 
-all: $(OPENMPT)
+FFTW_DIR := $(CURDIR)/fftw-3.3.8
+$(FFTW_DIR)/config.h: $(TOOLS) $(FFTW_DIR).tar.gz
+	@echo Configuring fftw 
+	rm -rf $(FFTW_DIR)
+	tar xf $(FFTW_DIR).tar.gz
+	cd $(FFTW_DIR) && ./bootstrap.sh && \
+		CXXFLAGS="-mtune=$(TUNE_CPU)" CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking --enable-shared --disable-static --disable-doc --enable-sse2 --enable-avx --enable-avx2 --enable-fma --disable-fortran
+$(FFTW): $(FFTW_DIR)/config.h	
+	@echo Building fftw 
+	$(MAKE) -C $(FFTW_DIR) -j $(CORES) || $(MAKE) -C $(FFTW_DIR)
+	$(MAKE) -C $(FFTW_DIR) install
+
+SAMPLERATE_DIR := $(CURDIR)/libsamplerate
+$(SAMPLERATE_DIR)/Makefile: $(TOOLS) $(FFTW)
+	@echo Configuring samplerate
+	rm -f $@
+	cd $(SAMPLERATE_DIR) && libtoolize && ./autogen.sh && \
+		FFTW3_CFLAGS="`pkg-config fftw3 --cflags`" CFLAGS="-mtune=$(TUNE_CPU)" FFTW3_LIBS="`pkg-config fftw3 --libs`" ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking --enable-shared --disable-static --enable-fftw
+$(SAMPLERATE): $(SAMPLERATE_DIR)/Makefile
+	@echo Building samplerate 
+	$(MAKE) -C $(SAMPLERATE_DIR) -j $(CORES) || $(MAKE) -C $(SAMPLERATE_DIR)
+	$(MAKE) -C $(SAMPLERATE_DIR) install
+
+VAMP_SDK_DIR := $(CURDIR)/vamp-plugin-sdk-2.7.1
+$(VAMP_SDK_DIR)/Makefile: $(TOOLS) $(VAMP_SDK_DIR).tar.gz
+	@echo Configuring vamp-sdk
+	rm -rf $(VAMP_SDK_DIR)
+	tar xf $(VAMP_SDK_DIR).tar.gz
+	cd $(VAMP_SDK_DIR) && \
+		SNDFILE_LIBS="-L$(PREFIX)/lib -lsndfile" SNDFILE_CFLAGS="-I$(PREFIX)/include" CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --disable-programs
+$(VAMP_SDK): $(VAMP_SDK_DIR)/Makefile
+	@echo Building vamp-sdk
+	$(MAKE) -C $(VAMP_SDK_DIR) -j $(CORES) || $(MAKE) -C $(VAMP_SDK_DIR)
+	$(MAKE) -C $(VAMP_SDK_DIR) install
+
+RUBBER_DIR := $(CURDIR)/rubberband-1.8.2
+LADSPA_DIR := $(CURDIR)/ladspa_sdk
+$(RUBBER_DIR)/Makefile: $(TOOLS) $(RUBBER_DIR).tar.bz2 $(SAMPLERATE) $(FFTW) $(VAMP_SDK) $(LADSPA_DIR).tgz
+	@echo Configuring rubberband
+	rm -rf $(RUBBER_DIR) $(LADSPA_DIR)
+	tar xf $(RUBBER_DIR).tar.bz2
+	tar xf $(LADSPA_DIR).tgz
+	cd $(RUBBER_DIR) && \
+		CPPFLAGS="-I$(LADSPA_DIR)/src" FFTW_CFLAGS="`pkg-config fftw3 --cflags`" FFTW_LIBS="`pkg-config fftw3 --libs`" CFLAGS="-mtune=$(TUNE_CPU) -I$(LADSPA_DIR)/src" CXXFLAGS="-mtune=$(TUNE_CPU) -I$(LADSPA_DIR)/src" ./configure "--prefix=$(PREFIX)"
+$(RUBBER): $(RUBBER_DIR)/Makefile
+	@echo Building rubberband
+	touch $(RUBBER_DIR)/lib/librubberband-jni.so 
+	$(MAKE) -C $(RUBBER_DIR) -j $(CORES) || $(MAKE) -C $(RUBBER_DIR)
+	$(MAKE) -C $(RUBBER_DIR) install
+	
+all: $(RUBBER)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:
 	@echo Configuring ffmpeg
 	cd "$(FFMPEG_DIR)" && \
-		./configure --prefix="${PREFIX}" --pkg-config-flags="--static" \
+		LD_LIBRARY_PATH=$(PREFIX)/lib ./configure --prefix="${PREFIX}" --pkg-config-flags="--static" \
 			--extra-cflags="-I${PREFIX}/include -mtune=${TUNE_CPU}" \
 			'--extra-ldflags=-L${PREFIX}/lib -Wl,-rpath=\\\$\$ORIGIN/../lib -Wl,-z,origin' \
 			 --extra-libs="-lpthread -lm" --enable-gpl --enable-version3 \
