@@ -49,3 +49,9 @@
 [submodule "libsndfile"]
 	path = libsndfile
 	url = https://github.com/erikd/libsndfile.git
+[submodule "libpciaccess"]
+	path = libpciaccess
+	url = https://github.com/rcvalle/libpciaccess.git
+[submodule "xorg-macros"]
+	path = xorg-macros
+	url = https://github.com/freedesktop/xorg-macros.git

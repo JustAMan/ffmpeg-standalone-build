@@ -35,6 +35,9 @@ UDFREAD=$(PREFIX)/lib/libudfread.so
 BS2B=$(PREFIX)/lib/libbs2b.so
 SNDFILE=$(PREFIX)/lib/libsndfile.so
 PKGCONFIG=$(PREFIX)/bin/pkg-config
+LIBDRM=$(PREFIX)/lib/libdrm.si
+PCIACCESS=$(PREFIX)/lib/libpciaccess.so
+XORGMACRO=$(PREFIX)/share/pkgconfig/xorg-macros.pc
 
 $(PREFIX):
 	mkdir -p "$@"
@@ -344,8 +347,41 @@ $(BS2B): $(BS2B_DIR)/Makefile
 	$(MAKE) -C $(BS2B_DIR) -j $(CORES) || $(MAKE) -C $(BS2B_DIR)
 	$(MAKE) -C $(BS2B_DIR) install
 
+XORGMACRO_DIR := $(CURDIR)/xorg-macros
+$(XORGMACRO_DIR)/Makefile: $(TOOLS)
+	@echo Configuring xorg-macro
+	rm -f $@
+	cd $(XORGMACRO_DIR) && NOCONFIGURE=1 ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)"
+$(XORGMACRO): $(XORGMACRO_DIR)/Makefile
+	@echo Building xorg-macro
+	$(MAKE) -C $(XORGMACRO_DIR) -j $(CORES) || $(MAKE) -C $(XORGMACRO_DIR)
+	$(MAKE) -C $(XORGMACRO_DIR) install
 
-all: $(BS2B)
+PCIACCESS_DIR := $(CURDIR)/libpciaccess
+$(PCIACCESS_DIR)/config.h: $(TOOLS) $(XORGMACRO)
+	@echo Configuring pciaccess
+	rm -f $@
+	cd $(PCIACCESS_DIR) && NOCONFIGURE=1 ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking --disable-static 
+$(PCIACCESS): $(PCIACCESS_DIR)/config.h
+	@echo Building pciaccess 
+	$(MAKE) -C $(PCIACCESS_DIR) -j $(CORES) || $(MAKE) -C $(PCIACCESS_DIR)
+	$(MAKE) -C $(PCIACCESS_DIR) install
+
+LIBDRM_DIR := $(CURDIR)/libdrm-2.4.99
+$(LIBDRM_DIR)/config.h: $(TOOLS) $(PCIACCESS)
+	@echo Configuring libdrm
+	rm -rf $(LIBDRM_DIR)
+	tar xf $(LIBDRM_DIR).tar.gz
+	cd $(LIBDRM_DIR) && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --enable-intel --enable-radeon --enable-amdgpu --enable-nouveau --disable-cairo-tests --disable-manpages --disable-valgrind
+$(LIBDRM): $(LIBDRM_DIR)/config.h
+	@echo Building libdrm 
+	$(MAKE) -C $(LIBDRM_DIR) -j $(CORES) || $(MAKE) -C $(LIBDRM_DIR)
+	$(MAKE) -C $(LIBDRM_DIR) install
+
+all: $(LIBDRM)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:
@@ -356,7 +392,7 @@ ff:
 			'--extra-ldflags=-L${PREFIX}/lib -Wl,-rpath=\\\$\$ORIGIN/../lib -Wl,-z,origin' \
 			 --extra-libs="-lpthread -lm" --enable-gpl --enable-version3 \
 			 ${NONFREE} --enable-libaom --enable-libass --enable-libbluray \
-			--enable-libbs2b --enable-libcaca --enable-libcdio  --enable-libfontconfig \
+			--enable-libbs2b --enable-libcdio  --enable-libfontconfig \
 			--enable-libfreetype --enable-libfribidi --enable-libmp3lame \
 			--enable-libopenjpeg --enable-libopenmpt --enable-libopus \
 			--enable-librubberband --enable-libsrt --enable-libtheora \
