@@ -73,3 +73,9 @@
 [submodule "libsamplerate"]
 	path = libsamplerate
 	url = https://github.com/erikd/libsamplerate.git
+[submodule "srt"]
+	path = srt
+	url = https://github.com/Haivision/srt.git
+[submodule "openssl"]
+	path = openssl
+	url = https://github.com/openssl/openssl.git

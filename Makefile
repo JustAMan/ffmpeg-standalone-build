@@ -9,6 +9,7 @@ export ACLOCAL_PATH := /usr/share/aclocal
 
 DEPS=$(CURDIR)/dependencies.stamp
 TOOLS=$(CURDIR)/tools.stamp
+CMAKE=$(CURDIR)/cmake-3.15.0-Linux-x86_64/bin/cmake
 
 NASM=$(PREFIX)/bin/nasm
 YASM=$(PREFIX)/bin/yasm
@@ -48,11 +49,14 @@ RUBBER=$(PREFIX)/lib/librubberband.so
 SAMPLERATE=$(PREFIX)/lib/libsamplerate.so
 FFTW=$(PREFIX)/lib/libfftw3.so
 VAMP_SDK=$(PREFIX)/lib/libvamp-sdk.so
+SRT=$(PREFIX)/lib/libsrt.so
+OPENSSL=$(PREFIX)/lib/libssl.so
 
-$(PREFIX):
-	mkdir -p "$@"
+$(PREFIX)/.prefix:
+	mkdir -p "$(PREFIX)"
+	touch $@
 
-$(DEPS): $(PREFIX)
+$(DEPS): $(PREFIX)/.prefix
 	@echo Grabbing dependencies
 	sudo apt-get -y install \
 	  autoconf \
@@ -70,6 +74,12 @@ $(DEPS): $(PREFIX)
 	  autogen
 	touch "$@"
 
+$(CMAKE): $(CURDIR)/cmake-3.15.0-Linux-x86_64.tar.gz
+	@echo Unpacking cmake
+	rm -rf $(CURDIR)/cmake-3.15.0-Linux-x86_64
+	tar xf $(CURDIR)/cmake-3.15.0-Linux-x86_64.tar.gz
+	touch $(CMAKE)
+
 NASM_DIR := nasm-2.13.03
 $(NASM_DIR)/config.status: $(DEPS) $(NASM_DIR).tar.bz2
 	@echo Configuring nasm
@@ -78,7 +88,7 @@ $(NASM_DIR)/config.status: $(DEPS) $(NASM_DIR).tar.bz2
 	cd $(NASM_DIR) && \
 		./autogen.sh && \
 		CFLAGS='-mtune=native' ./configure "--prefix=$(PREFIX)"
-$(NASM): $(PREFIX) $(NASM_DIR)/config.status
+$(NASM): $(PREFIX)/.prefix $(NASM_DIR)/config.status
 	@echo Building nasm
 	$(MAKE) -C $(NASM_DIR) -j $(CORES) || $(MAKE) -C $(NASM_DIR)
 	$(MAKE) -C $(NASM_DIR) install	
@@ -90,7 +100,7 @@ $(YASM_DIR)/config.status: $(DEPS) $(YASM_DIR).tar.gz
 	tar xf $(YASM_DIR).tar.gz
 	cd $(YASM_DIR) && \
 		CFLAGS='-mtune=native' ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking
-$(YASM): $(PREFIX) $(YASM_DIR)/config.status
+$(YASM): $(PREFIX)/.prefix $(YASM_DIR)/config.status
 	@echo Building yasm
 	$(MAKE) -C $(YASM_DIR) -j $(CORES) || $(MAKE) -C $(YASM_DIR)
 	$(MAKE) -C $(YASM_DIR) install	
@@ -106,7 +116,7 @@ $(LIBNUMA): $(LIBNUMA_DIR)/config.status
 	$(MAKE) -C $(LIBNUMA_DIR) -j $(CORES) || $(MAKE) -C $(LIBNUMA_DIR)
 	$(MAKE) -C $(LIBNUMA_DIR) install
 
-$(TOOLS): $(DEPS) $(YASM) $(NASM) $(LIBNUMA)
+$(TOOLS): $(DEPS) $(YASM) $(NASM) $(LIBNUMA) $(PREFIX)/.prefix
 	touch "$@"
 
 X264_DIR := $(CURDIR)/libx264
@@ -508,8 +518,31 @@ $(RUBBER): $(RUBBER_DIR)/Makefile
 	touch $(RUBBER_DIR)/lib/librubberband-jni.so 
 	$(MAKE) -C $(RUBBER_DIR) -j $(CORES) || $(MAKE) -C $(RUBBER_DIR)
 	$(MAKE) -C $(RUBBER_DIR) install
+
+OPENSSL_DIR := $(CURDIR)/openssl
+$(OPENSSL_DIR)/Makefile: $(TOOLS)
+	@echo Configuring openssl
+	rm -f $@
+	cd $(OPENSSL_DIR) && \
+		./Configure --prefix=$(PREFIX) --openssldir=$(PREFIX) shared linux-x86_64
+$(OPENSSL): $(OPENSSL_DIR)/Makefile
+	@echo Building opennsl
+	$(MAKE) -C $(OPENSSL_DIR) -j $(CORES) || $(MAKE) -C $(OPENSSL_DIR)
+	$(MAKE) -C $(OPENSSL_DIR) install
+
+SRT_DIR := $(CURDIR)/srt
+$(SRT_DIR)/build/Makefile: $(TOOLS) $(CMAKE) $(OPENSSL)
+	@echo Configuring srt
+	mkdir -p $(SRT_DIR)/build
+	rm -f $@
+	cd $(SRT_DIR)/build && \
+		$(CMAKE) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_INSTALL_LIBDIR=lib .. -DUSE_OPENSSL_PC=OFF -DENABLE_STATIC=OFF -DENABLE_APPS=OFF -DCMAKE_INSTALL_BINDIR=bin -DCMAKE_INSTALL_INCLUDEDIR=include
+$(SRT): $(SRT_DIR)/build/Makefile
+	@echo Building srt
+	$(MAKE) -C $(SRT_DIR)/build -j $(CORES) || $(MAKE) -C $(SRT_DIR)/build
+	$(MAKE) -C $(SRT_DIR)/build install
 	
-all: $(RUBBER)
+all: $(SRT)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:
