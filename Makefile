@@ -1,7 +1,8 @@
 CORES := 8
 TUNE_CPU := core2
 PREFIX = $(CURDIR)/prefix
-NONFREE := --enable-nonfree --enable-libfdk-aac # set to empty if plan to redistribute
+#NONFREE := --enable-nonfree --enable-libfdk-aac # fdk-aac has building problems
+NONFREE := --enable-nonfree --enable-openssl --enable-libsrt # set to empty if plan to redistribute
 
 export PATH := $(PREFIX)/bin:$(PATH)
 export PKG_CONFIG_PATH := $(PREFIX)/lib/pkgconfig:$(PKG_CONFIG_PATH)
@@ -39,7 +40,7 @@ PKGCONFIG=$(PREFIX)/bin/pkg-config
 LIBDRM=$(PREFIX)/lib/libdrm.si
 PCIACCESS=$(PREFIX)/lib/libpciaccess.so
 XORGMACRO=$(PREFIX)/share/pkgconfig/xorg-macros.pc
-FDK_AAC=$(PREFIX)/lib/libfdk-aac.so
+#FDK_AAC=$(PREFIX)/lib/libfdk-aac.so
 MYSOFA=$(PREFIX)/lib/libmysofa.so
 OPENJPEG=$(PREFIX)/lib/libopenjp2.so
 OPENMPT=$(PREFIX)/lib/libopenmpt.so
@@ -61,6 +62,7 @@ LIBVA=$(PREFIX)/lib/libva.so
 MFX=$(PREFIX)/lib/libmfx.so
 NVHEAD=$(PREFIX)/lib/pkgconfig/ffnvcodec.pc
 ICD_LOADER=$(PREFIX)/lib/libOpenCL.so
+FFMPEG=$(PREFIX)/bin/ffmpeg
 #EOLibs
 
 $(PREFIX)/.prefix:
@@ -412,16 +414,16 @@ $(LIBDRM): $(LIBDRM_DIR)/config.h
 	$(MAKE) -C $(LIBDRM_DIR) -j $(CORES) || $(MAKE) -C $(LIBDRM_DIR)
 	$(MAKE) -C $(LIBDRM_DIR) install
 
-FDK_AAC_DIR := $(CURDIR)/fdk-aac
-$(FDK_AAC_DIR)/Makefile: $(TOOLS)
-	@echo Configuring fdk-aac
-	rm -f $@
-	cd $(FDK_AAC_DIR) && libtoolize && ./autogen.sh && \
-		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking --disable-static --disable-example
-$(FDK_AAC): $(FDK_AAC_DIR)/Makefile
-	@echo Building fdk-aac 
-	$(MAKE) -C $(FDK_AAC_DIR) -j $(CORES) || $(MAKE) -C $(FDK_AAC_DIR)
-	$(MAKE) -C $(FDK_AAC_DIR) install
+#FDK_AAC_DIR := $(CURDIR)/fdk-aac
+#$(FDK_AAC_DIR)/Makefile: $(TOOLS)
+#	@echo Configuring fdk-aac
+#	rm -f $@
+#	cd $(FDK_AAC_DIR) && libtoolize && ./autogen.sh && \
+#		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking --disable-static --disable-example
+#$(FDK_AAC): $(FDK_AAC_DIR)/Makefile
+#	@echo Building fdk-aac 
+#	$(MAKE) -C $(FDK_AAC_DIR) -j $(CORES) || $(MAKE) -C $(FDK_AAC_DIR)
+#	$(MAKE) -C $(FDK_AAC_DIR) install
 
 MYSOFA_DIR := $(CURDIR)/libmysofa
 $(MYSOFA_DIR)/build/Makefile: $(TOOLS)
@@ -667,26 +669,26 @@ $(ICD_LOADER): $(ICD_LOADER_DIR)/build/Makefile
 	$(MAKE) -C $(ICD_LOADER_DIR)/build -j $(CORES) || $(MAKE) -C $(ICD_LOADER_DIR)/build
 	$(MAKE) -C $(ICD_LOADER_DIR)/build install
 
-all: $(ICD_LOADER)
-
 FFMPEG_DIR := $(CURDIR)/ffmpeg
-ff:
+$(FFMPEG_DIR)/config.h: $(TOOLS)
 	@echo Configuring ffmpeg
+	rm -f $@
+#		LD_LIBRARY_PATH=$(PREFIX)/lib ./configure --prefix="${PREFIX}" --pkg-config-flags="--static" 
 	cd "$(FFMPEG_DIR)" && \
-		LD_LIBRARY_PATH=$(PREFIX)/lib ./configure --prefix="${PREFIX}" --pkg-config-flags="--static" \
+		./configure --prefix="${PREFIX}" \
 			--extra-cflags="-I${PREFIX}/include -mtune=${TUNE_CPU} -I$(CURDIR)/OpenCL-Headers/" \
-			'--extra-ldflags=-L${PREFIX}/lib -Wl,-rpath=\\\$\$ORIGIN/../lib -Wl,-z,origin' \
+			'--extra-ldflags=-L${PREFIX}/lib -Wl,-rpath=\\\$$\$$ORIGIN/../lib -Wl,-z,origin -Wl,-rpath-link=$(PREFIX)/lib' \
 			 --extra-libs="-lpthread -lm" --enable-gpl --enable-version3 \
 			 ${NONFREE} --enable-libaom --enable-libass --enable-libbluray \
 			--enable-libbs2b --enable-libcdio  --enable-libfontconfig \
 			--enable-libfreetype --enable-libfribidi --enable-libmp3lame \
 			--enable-libopenjpeg --enable-libopenmpt --enable-libopus \
-			--enable-librubberband --enable-libsrt --enable-libtheora \
+			--enable-librubberband --enable-libtheora \
 			--enable-libtwolame --enable-libvidstab --enable-libvpx --enable-libwebp \
 			--enable-libx264 --enable-libx265 --enable-libxml2 --enable-libmysofa \
 			--enable-libdrm --enable-vaapi --enable-libmfx --enable-nvdec --enable-nvenc \
-			--enable-opencl --enable-openssl --enable-ffnvcodec \
-			--enable-lto --cpu="${TUNE_CPU}" --x86asmexe=nasm \
+			--enable-opencl --enable-ffnvcodec \
+			--cpu="${TUNE_CPU}" --x86asmexe=nasm \
 			--enable-asm  --enable-mmx --enable-mmxext --enable-sse --enable-sse2 \
 			--enable-sse3 --enable-ssse3 --enable-sse4 --enable-sse42 --enable-avx \
 			--enable-avx2 --disable-fast-unaligned --enable-hwaccel=h264_nvdec \
@@ -698,7 +700,12 @@ ff:
 			--enable-encoder=hevc_vaapi --enable-encoder=mpeg2_vaapi \
 			--enable-encoder=nvenc --enable-encoder=nvenc_h264 \
 			--enable-encoder=nvenc_hevc --enable-encoder=vp9_vaapi
+$(FFMPEG): $(FFMPEG_DIR)/config.h
+	@echo Building ffmpeg
+	$(MAKE) -C $(FFMPEG_DIR) -j $(CORES) || $(MAKE) -C $(FFMPEG_DIR)
+	$(MAKE) -C $(FFMPEG_DIR) install
 		
+all: $(FFMPEG)
 
 clean:
 	rm -rf $(NASM_DIR)
