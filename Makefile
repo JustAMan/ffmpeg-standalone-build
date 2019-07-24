@@ -707,6 +707,11 @@ $(FFMPEG): $(FFMPEG_DIR)/config.h
 		
 all: $(FFMPEG)
 
+PACKAGE := $(CURDIR)/ffmpeg.tgz
+$(PACKAGE): $(FFMPEG)
+	tar czvf $(PACKAGE) -C $(PREFIX) bin/ffmpeg bin/ffprobe `ldd $(FFMPEG) $(PREFIX)/bin/ffprobe | awk '{print $$3}' | grep $(PREFIX) | sort -u | xargs -n 1 $(CURDIR)/expand-links.sh | sed -e "s:^$(PREFIX)/::g"`
+package: $(PACKAGE)
+
 clean:
 	rm -rf $(NASM_DIR)
 	rm -rf $(YASM_DIR)
@@ -719,6 +724,6 @@ clean:
 	cd $(OPUS_DIR) && git clean -fxd
 	# TODO: add AOM and further
 
-.PHONY: all clean ff
+.PHONY: all clean package
 #.SILENT:
 .DEFAULT_GOAL := all
