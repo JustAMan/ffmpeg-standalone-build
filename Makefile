@@ -51,6 +51,7 @@ FFTW=$(PREFIX)/lib/libfftw3.so
 VAMP_SDK=$(PREFIX)/lib/libvamp-sdk.so
 SRT=$(PREFIX)/lib/libsrt.so
 OPENSSL=$(PREFIX)/lib/libssl.so
+THEORA=$(PREFIX)/lib/libtheora.so
 
 $(PREFIX)/.prefix:
 	mkdir -p "$(PREFIX)"
@@ -541,8 +542,21 @@ $(SRT): $(SRT_DIR)/build/Makefile
 	@echo Building srt
 	$(MAKE) -C $(SRT_DIR)/build -j $(CORES) || $(MAKE) -C $(SRT_DIR)/build
 	$(MAKE) -C $(SRT_DIR)/build install
+
+THEORA_DIR := $(CURDIR)/libtheora-1.1.1
+$(THEORA_DIR)/config.h: $(TOOLS) $(THEORA_DIR).tar.bz2
+	@echo Configuring theora
+	rm -rf $(THEORA_DIR)
+	tar xf $(THEORA_DIR).tar.bz2
+	cd $(THEORA_DIR) && libtoolize && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./autogen.sh --prefix=$(PREFIX) --disable-dependency-tracking --disable-static --disable-oggtest --disable-vorbistest --disable-sdltest --disable-examples
+$(THEORA): $(THEORA_DIR)/config.h
+	@echo Building theora 
+	$(MAKE) -C $(THEORA_DIR) -j $(CORES) || $(MAKE) -C $(THEORA_DIR)
+	$(MAKE) -C $(THEORA_DIR) install
 	
-all: $(SRT)
+	
+all: $(THEORA)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:
