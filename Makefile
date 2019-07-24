@@ -37,7 +37,7 @@ UDFREAD=$(PREFIX)/lib/libudfread.so
 BS2B=$(PREFIX)/lib/libbs2b.so
 SNDFILE=$(PREFIX)/lib/libsndfile.so
 PKGCONFIG=$(PREFIX)/bin/pkg-config
-LIBDRM=$(PREFIX)/lib/libdrm.si
+LIBDRM=$(PREFIX)/lib/libdrm.so
 PCIACCESS=$(PREFIX)/lib/libpciaccess.so
 XORGMACRO=$(PREFIX)/share/pkgconfig/xorg-macros.pc
 #FDK_AAC=$(PREFIX)/lib/libfdk-aac.so
@@ -186,12 +186,12 @@ $(OPUS): $(OPUS_DIR)/config.h
 	$(MAKE) -C $(OPUS_DIR) install
 
 AOM_DIR := $(CURDIR)/aom
-$(AOM_DIR)/aom_build/Makefile: $(TOOLS)
+$(AOM_DIR)/aom_build/Makefile: $(TOOLS) $(CMAKE)
 	@echo Configuring aom
 	mkdir -p "$(AOM_DIR)/aom_build"
 	rm -f $@
 	cd $(AOM_DIR)/aom_build && \
-		 cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DENABLE_SHARED=on -DENABLE_NASM=on .. -DBUILD_SHARED_LIBS=on -DCONFIG_PIC=on -DCONFIG_SHARED=on -DCONFIG_STATIC=no -DENABLE_EXAMPLES=off -DENABLE_TESTDATA=off -DENABLE_TESTS=off 
+		 $(CMAKE) -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DENABLE_SHARED=on -DENABLE_NASM=on .. -DBUILD_SHARED_LIBS=on -DCONFIG_PIC=on -DCONFIG_SHARED=on -DCONFIG_STATIC=no -DENABLE_EXAMPLES=off -DENABLE_TESTDATA=off -DENABLE_TESTS=off 
 $(AOM): $(AOM_DIR)/aom_build/Makefile
 	@echo Building aom 
 	$(MAKE) -C $(AOM_DIR)/aom_build -j $(CORES) || $(MAKE) -C $(AOM_DIR)/aom_build 
@@ -531,8 +531,8 @@ $(RUBBER_DIR)/Makefile: $(TOOLS) $(RUBBER_DIR).tar.bz2 $(SAMPLERATE) $(FFTW) $(V
 		CPPFLAGS="-I$(LADSPA_DIR)/src" FFTW_CFLAGS="`pkg-config fftw3 --cflags`" FFTW_LIBS="`pkg-config fftw3 --libs`" CFLAGS="-mtune=$(TUNE_CPU) -I$(LADSPA_DIR)/src" CXXFLAGS="-mtune=$(TUNE_CPU) -I$(LADSPA_DIR)/src" ./configure "--prefix=$(PREFIX)"
 $(RUBBER): $(RUBBER_DIR)/Makefile
 	@echo Building rubberband
-	touch $(RUBBER_DIR)/lib/librubberband-jni.so 
 	$(MAKE) -C $(RUBBER_DIR) -j $(CORES) || $(MAKE) -C $(RUBBER_DIR)
+	touch $(RUBBER_DIR)/lib/librubberband-jni.so 
 	$(MAKE) -C $(RUBBER_DIR) install
 
 OPENSSL_DIR := $(CURDIR)/openssl
@@ -643,7 +643,7 @@ $(LIBVA): $(LIBVA_DIR)/config.h
 	$(MAKE) -C $(LIBVA_DIR) install
 
 MFX_DIR := $(CURDIR)/MediaSDK
-$(MFX_DIR)/build/Makefile: $(TOOLS) $(CMAKE)
+$(MFX_DIR)/build/Makefile: $(TOOLS) $(CMAKE) $(LIBVA)
 	@echo Configuring mfx
 	rm -f $@
 	mkdir -p $(MFX_DIR)/build
@@ -671,9 +671,10 @@ $(ICD_LOADER): $(ICD_LOADER_DIR)/build/Makefile
 	@echo Building ICD loader
 	$(MAKE) -C $(ICD_LOADER_DIR)/build -j $(CORES) || $(MAKE) -C $(ICD_LOADER_DIR)/build
 	$(MAKE) -C $(ICD_LOADER_DIR)/build install
+	touch $@
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
-$(FFMPEG_DIR)/config.h: $(TOOLS)
+$(FFMPEG_DIR)/config.h: $(TOOLS) $(AOM) $(ASS) $(BLURAY) $(BS2B) $(LIBDRM) $(MFX) $(LAME) $(MYSOFA) $(OPENJPEG) $(OPENMPT) $(OPUS) $(RUBBER) $(SRT) $(THEORA) $(TWOLAME) $(VIDSTAB) $(LIBVPX) $(WEBP) $(X264) $(X265) $(ICD_LOADER) $(PARANOIA) $(NVHEAD)
 	@echo Configuring ffmpeg
 	rm -f $@
 	cd "$(FFMPEG_DIR)" && \
