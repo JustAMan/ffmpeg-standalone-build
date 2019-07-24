@@ -59,6 +59,7 @@ PARANOIA=$(PREFIX)/lib/libcdio_paranoia.so
 CDIO=$(PREFIX)/lib/libcdio.so
 LIBVA=$(PREFIX)/lib/libva.so
 MFX=$(PREFIX)/lib/libmfx.so
+NVHEAD=$(PREFIX)/lib/pkgconfig/ffnvcodec.pc
 #EOLibs
 
 $(PREFIX)/.prefix:
@@ -647,8 +648,13 @@ $(MFX): $(MFX_DIR)/build/Makefile
 	$(MAKE) -C $(MFX_DIR)/build -j $(CORES) || $(MAKE) -C $(MFX_DIR)/build
 	$(MAKE) -C $(MFX_DIR)/build install
 
+NVHEAD_DIR := $(CURDIR)/nv-codec-headers
+$(NVHEAD): $(TOOLS)
+	@echo Building nv-headers
+	$(MAKE) -C $(NVHEAD_DIR) PREFIX=$(PREFIX)
+	$(MAKE) -C $(NVHEAD_DIR) PREFIX=$(PREFIX) install
 
-all: $(MFX)
+all: $(NVHEAD)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:

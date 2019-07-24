@@ -100,3 +100,6 @@
 [submodule "MediaSDK"]
 	path = MediaSDK
 	url = https://github.com/Intel-Media-SDK/MediaSDK.git
+[submodule "nv-codec-headers"]
+	path = nv-codec-headers
+	url = https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
