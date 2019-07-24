@@ -55,6 +55,8 @@ THEORA=$(PREFIX)/lib/libtheora.so
 TWOLAME=$(PREFIX)/lib/libtwolame.so
 VIDSTAB=$(PREFIX)/lib/libvidstab.so
 WEBP=$(PREFIX)/lib/libwebp.so
+PARANOIA=$(PREFIX)/lib/libcdio_paranoia.so
+CDIO=$(PREFIX)/lib/libcdio.so
 #EOLibs
 
 $(PREFIX)/.prefix:
@@ -586,17 +588,41 @@ $(VIDSTAB): $(VIDSTAB_DIR)/build/Makefile
 	$(MAKE) -C $(VIDSTAB_DIR)/build install
 	
 WEBP_DIR := $(CURDIR)/libwebp
-$(WEBP_DIR)/config.h: $(TOOLS)
+$(WEBP_DIR)/Makefile: $(TOOLS)
 	@echo Configuring webp
 	rm -f $@
 	cd $(WEBP_DIR) && libtoolize && NOCONFIGURE=1 ./autogen.sh && \
 		CFLAGS="-mtune=$(TUNE_CPU)" ./configure --prefix=$(PREFIX) --disable-dependency-tracking --disable-static --enable-libwebpdecoder --enable-libwebpextras --enable-libwebpmux
-$(WEBP): $(WEBP_DIR)/config.h
+$(WEBP): $(WEBP_DIR)/Makefile
 	@echo Building webp
 	$(MAKE) -C $(WEBP_DIR) -j $(CORES) || $(MAKE) -C $(WEBP_DIR)
 	$(MAKE) -C $(WEBP_DIR) install
 
-all: $(WEBP)
+CDIO_DIR := $(CURDIR)/libcdio
+$(CDIO_DIR)/config.h: $(TOOLS)
+	@echo Configuring cdio
+	rm -f $@
+	cd $(CDIO_DIR) && libtoolize && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./autogen.sh --prefix=$(PREFIX) --disable-cpp-progs --disable-example-progs --disable-dependency-tracking --disable-static --without-cd-drive --without-cd-info --without-cdda-player --without-iso-info --without-iso-read 
+$(CDIO): $(CDIO_DIR)/config.h
+	@echo Building cdio
+	$(MAKE) -C $(CDIO_DIR) -j $(CORES) || $(MAKE) -C $(CDIO_DIR)
+	# workaround for buggy makefile trying to copy a man without building it
+	touch $(CDIO_DIR)/src/cd-read.1
+	$(MAKE) -C $(CDIO_DIR) install
+
+PARANOIA_DIR := $(CURDIR)/libcdio-paranoia
+$(PARANOIA_DIR)/config.h: $(TOOLS) $(CDIO)
+	@echo Configuring cdio-paranoia
+	rm -f $@
+	cd $(PARANOIA_DIR) && libtoolize && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./autogen.sh --prefix=$(PREFIX) --disable-example-progs --disable-dependency-tracking --disable-static 
+$(PARANOIA): $(PARANOIA_DIR)/config.h
+	@echo Building cdio-paranoia
+	$(MAKE) -C $(PARANOIA_DIR) -j $(CORES) || $(MAKE) -C $(PARANOIA_DIR)
+	$(MAKE) -C $(PARANOIA_DIR) install
+
+all: $(PARANOIA)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:
