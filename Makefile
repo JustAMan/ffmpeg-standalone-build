@@ -189,6 +189,7 @@ AOM_DIR := $(CURDIR)/aom
 $(AOM_DIR)/aom_build/Makefile: $(TOOLS)
 	@echo Configuring aom
 	mkdir -p "$(AOM_DIR)/aom_build"
+	rm -f $@
 	cd $(AOM_DIR)/aom_build && \
 		 cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DENABLE_SHARED=on -DENABLE_NASM=on .. -DBUILD_SHARED_LIBS=on -DCONFIG_PIC=on -DCONFIG_SHARED=on -DCONFIG_STATIC=no -DENABLE_EXAMPLES=off -DENABLE_TESTDATA=off -DENABLE_TESTS=off 
 $(AOM): $(AOM_DIR)/aom_build/Makefile
@@ -205,6 +206,7 @@ $(BZIP): $(TOOLS) $(BZIP_DIR).tar.gz
 ZLIB_DIR := $(CURDIR)/zlib
 $(ZLIB_DIR)/zconf.h: $(TOOLS)
 	@echo Configuring zlib
+	rm -f $@
 	cd $(ZLIB_DIR) && \
 		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)"
 $(ZLIB): $(ZLIB_DIR)/zconf.h
@@ -216,6 +218,7 @@ $(ZLIB): $(ZLIB_DIR)/zconf.h
 PNG_DIR := $(CURDIR)/libpng
 $(PNG_DIR)/config.h: $(TOOLS) $(ZLIB)
 	@echo Configuring libpng
+	rm -f $@
 	cd $(PNG_DIR) && \
 		CFLAGS="-mtune=$(TUNE_CPU) `pkg-config zlib --cflags`" LDFLAGS="`pkg-config zlib --libs`" CPPFLAGS="`pkg-config zlib --cflags`" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --enable-hardware-optimizations=yes --enable-intel-sse=yes
 
@@ -673,7 +676,6 @@ FFMPEG_DIR := $(CURDIR)/ffmpeg
 $(FFMPEG_DIR)/config.h: $(TOOLS)
 	@echo Configuring ffmpeg
 	rm -f $@
-#		LD_LIBRARY_PATH=$(PREFIX)/lib ./configure --prefix="${PREFIX}" --pkg-config-flags="--static" 
 	cd "$(FFMPEG_DIR)" && \
 		./configure --prefix="${PREFIX}" \
 			--extra-cflags="-I${PREFIX}/include -mtune=${TUNE_CPU} -I$(CURDIR)/OpenCL-Headers/" \
@@ -722,8 +724,50 @@ clean:
 	cd $(LIBVPX_DIR) && git clean -fxd
 	rm -rf $(LAME_DIR)
 	cd $(OPUS_DIR) && git clean -fxd
-	# TODO: add AOM and further
+	cd $(AOM_DIR) && git clean -fxd
+	rm -rf $(BZIP_DIR)
+	cd $(ZLIB_DIR) && git clean -fxd && git reset --hard
+	cd $(PNG_DIR) && git clean -fxd
+	rm -rf $(FREETYPE_DIR)
+	cd $(FRIBIDI_DIR) && git clean -fxd
+	rm -rf $(GETTEXT_DIR)
+	rm -rf $(AUTOCONF_DIR)
+	rm -rf $(AUTOMAKE_DIR)
+	cd $(LIBXML_DIR) && git clean -fxd
+	cd $(FONTCONFIG_DIR) && git clean -fxd && git reset --hard
+	cd $(ASS_DIR) && git clean -fxd
+	cd $(UDFREAD_DIR) && git clean -fxd
+	cd $(BLURAY_DIR) && git clean -fxd
+	rm -rf $(PKGCONFIG_DIR)
+	cd $(SNDFILE_DIR) && git clean -fxd
+	cd $(BS2B_DIR) && git clean -fxd
+	cd $(XORGMACRO_DIR) && git clean -fxd
+	cd $(PCIACCESS_DIR) && git clean -fxd
+	rm -rf $(LIBDRM_DIR)
+	cd $(MYSOFA_DIR) && git clean -fxd
+	cd $(OPENJPEG_DIR) && git clean -fxd
+	cd $(OGG_DIR) && git clean -fxd
+	cd $(VORBIS_DIR) && git clean -fxd
+	rm -rf $(OPENMPT_DIR)
+	rm -rf $(FFTW_DIR)
+	cd $(SAMPLERATE_DIR) && git clean -fxd
+	rm -rf $(VAMP_SDK_DIR)
+	rm -rf $(RUBBER_DIR) $(LADSPA_DIR)
+	cd $(OPENSSL_DIR) && git clean -fxd
+	cd $(SRT_DIR) && git clean -fxd
+	rm -rf $(THEORA_DIR)
+	cd $(TWOLAME_DIR) && git clean -fxd
+	cd $(VIDSTAB_DIR) && git clean -fxd
+	cd $(WEBP_DIR) && git clean -fxd
+	cd $(CDIO_DIR) && git clean -fxd
+	cd $(PARANOIA_DIR) && git clean -fxd
+	cd $(LIBVA_DIR) && git clean -fxd
+	cd $(MFX_DIR) && git clean -fxd
+	cd $(NVHEAD_DIR) && git clean -fxd
+	cd $(ICD_LOADER_DIR) && git clean -fxd
+	cd $(FFMPEG_DIR) && git clean -fxd
+	rm -rf $(DEPS) $(TOOLS)
 
 .PHONY: all clean package
-#.SILENT:
+.SILENT:
 .DEFAULT_GOAL := all
