@@ -85,3 +85,6 @@
 [submodule "vid.stab"]
 	path = vid.stab
 	url = https://github.com/georgmartius/vid.stab.git
+[submodule "libwebp"]
+	path = libwebp
+	url = https://github.com/webmproject/libwebp.git

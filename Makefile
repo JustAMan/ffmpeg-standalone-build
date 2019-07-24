@@ -54,6 +54,7 @@ OPENSSL=$(PREFIX)/lib/libssl.so
 THEORA=$(PREFIX)/lib/libtheora.so
 TWOLAME=$(PREFIX)/lib/libtwolame.so
 VIDSTAB=$(PREFIX)/lib/libvidstab.so
+WEBP=$(PREFIX)/lib/libwebp.so
 #EOLibs
 
 $(PREFIX)/.prefix:
@@ -584,7 +585,18 @@ $(VIDSTAB): $(VIDSTAB_DIR)/build/Makefile
 	$(MAKE) -C $(VIDSTAB_DIR)/build -j $(CORES) || $(MAKE) -C $(VIDSTAB_DIR)/build
 	$(MAKE) -C $(VIDSTAB_DIR)/build install
 	
-all: $(VIDSTAB)
+WEBP_DIR := $(CURDIR)/libwebp
+$(WEBP_DIR)/config.h: $(TOOLS)
+	@echo Configuring webp
+	rm -f $@
+	cd $(WEBP_DIR) && libtoolize && NOCONFIGURE=1 ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure --prefix=$(PREFIX) --disable-dependency-tracking --disable-static --enable-libwebpdecoder --enable-libwebpextras --enable-libwebpmux
+$(WEBP): $(WEBP_DIR)/config.h
+	@echo Building webp
+	$(MAKE) -C $(WEBP_DIR) -j $(CORES) || $(MAKE) -C $(WEBP_DIR)
+	$(MAKE) -C $(WEBP_DIR) install
+
+all: $(WEBP)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:
