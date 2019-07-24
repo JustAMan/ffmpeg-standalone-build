@@ -57,6 +57,7 @@ VIDSTAB=$(PREFIX)/lib/libvidstab.so
 WEBP=$(PREFIX)/lib/libwebp.so
 PARANOIA=$(PREFIX)/lib/libcdio_paranoia.so
 CDIO=$(PREFIX)/lib/libcdio.so
+LIBVA=$(PREFIX)/lib/libva.so
 #EOLibs
 
 $(PREFIX)/.prefix:
@@ -622,7 +623,18 @@ $(PARANOIA): $(PARANOIA_DIR)/config.h
 	$(MAKE) -C $(PARANOIA_DIR) -j $(CORES) || $(MAKE) -C $(PARANOIA_DIR)
 	$(MAKE) -C $(PARANOIA_DIR) install
 
-all: $(PARANOIA)
+LIBVA_DIR := $(CURDIR)/libva
+$(LIBVA_DIR)/config.h: $(TOOLS)
+	@echo Configuring libva
+	rm -f $@
+	cd $(LIBVA_DIR) && libtoolize && NOCONFIGURE=1 ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure --prefix=$(PREFIX) --disable-x11 --disable-glx --disable-wayland --disable-static --disable-dependency-tracking
+$(LIBVA): $(LIBVA_DIR)/config.h
+	@echo Building libva 
+	$(MAKE) -C $(LIBVA_DIR) -j $(CORES) || $(MAKE) -C $(LIBVA_DIR)
+	$(MAKE) -C $(LIBVA_DIR) install
+
+all: $(LIBVA)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:

@@ -94,3 +94,6 @@
 [submodule "libcdio"]
 	path = libcdio
 	url = https://git.savannah.gnu.org/git/libcdio.git
+[submodule "libva"]
+	path = libva
+	url = https://github.com/01org/libva
