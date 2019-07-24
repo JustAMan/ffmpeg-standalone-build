@@ -53,6 +53,7 @@ SRT=$(PREFIX)/lib/libsrt.so
 OPENSSL=$(PREFIX)/lib/libssl.so
 THEORA=$(PREFIX)/lib/libtheora.so
 TWOLAME=$(PREFIX)/lib/libtwolame.so
+VIDSTAB=$(PREFIX)/lib/libvidstab.so
 #EOLibs
 
 $(PREFIX)/.prefix:
@@ -571,8 +572,19 @@ $(TWOLAME): $(TWOLAME_DIR)/Makefile
 	$(MAKE) -C $(TWOLAME_DIR) -j $(CORES) || $(MAKE) -C $(TWOLAME_DIR)
 	$(MAKE) -C $(TWOLAME_DIR) install
 		
+VIDSTAB_DIR := $(CURDIR)/vid.stab
+$(VIDSTAB_DIR)/build/Makefile: $(TOOLS) $(CMAKE)
+	@echo Configuring vidstab
+	rm -f $@
+	mkdir -p $(VIDSTAB_DIR)/build
+	cd $(VIDSTAB_DIR)/build && \
+		$(CMAKE) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(PREFIX) ..
+$(VIDSTAB): $(VIDSTAB_DIR)/build/Makefile
+	@echo Building vidstab
+	$(MAKE) -C $(VIDSTAB_DIR)/build -j $(CORES) || $(MAKE) -C $(VIDSTAB_DIR)/build
+	$(MAKE) -C $(VIDSTAB_DIR)/build install
 	
-all: $(TWOLAME)
+all: $(VIDSTAB)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:

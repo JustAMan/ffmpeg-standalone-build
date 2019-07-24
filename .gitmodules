@@ -82,3 +82,6 @@
 [submodule "twolame"]
 	path = twolame
 	url = https://github.com/njh/twolame.git
+[submodule "vid.stab"]
+	path = vid.stab
+	url = https://github.com/georgmartius/vid.stab.git
