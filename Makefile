@@ -60,6 +60,7 @@ CDIO=$(PREFIX)/lib/libcdio.so
 LIBVA=$(PREFIX)/lib/libva.so
 MFX=$(PREFIX)/lib/libmfx.so
 NVHEAD=$(PREFIX)/lib/pkgconfig/ffnvcodec.pc
+ICD_LOADER=$(PREFIX)/lib/libOpenCL.so
 #EOLibs
 
 $(PREFIX)/.prefix:
@@ -654,14 +655,26 @@ $(NVHEAD): $(TOOLS)
 	$(MAKE) -C $(NVHEAD_DIR) PREFIX=$(PREFIX)
 	$(MAKE) -C $(NVHEAD_DIR) PREFIX=$(PREFIX) install
 
-all: $(NVHEAD)
+ICD_LOADER_DIR := $(CURDIR)/OpenCL-ICD-Loader
+$(ICD_LOADER_DIR)/build/Makefile: $(TOOLS) $(CMAKE)
+	@echo Configuring ICD loader
+	rm -f $@
+	mkdir -p $(ICD_LOADER_DIR)/build
+	cd $(ICD_LOADER_DIR)/build && \
+		$(CMAKE) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(PREFIX) .. -DOPENCL_ICD_LOADER_HEADERS_DIR=$(CURDIR)/OpenCL-Headers
+$(ICD_LOADER): $(ICD_LOADER_DIR)/build/Makefile
+	@echo Building ICD loader
+	$(MAKE) -C $(ICD_LOADER_DIR)/build -j $(CORES) || $(MAKE) -C $(ICD_LOADER_DIR)/build
+	$(MAKE) -C $(ICD_LOADER_DIR)/build install
+
+all: $(ICD_LOADER)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:
 	@echo Configuring ffmpeg
 	cd "$(FFMPEG_DIR)" && \
 		LD_LIBRARY_PATH=$(PREFIX)/lib ./configure --prefix="${PREFIX}" --pkg-config-flags="--static" \
-			--extra-cflags="-I${PREFIX}/include -mtune=${TUNE_CPU}" \
+			--extra-cflags="-I${PREFIX}/include -mtune=${TUNE_CPU} -I$(CURDIR)/OpenCL-Headers/" \
 			'--extra-ldflags=-L${PREFIX}/lib -Wl,-rpath=\\\$\$ORIGIN/../lib -Wl,-z,origin' \
 			 --extra-libs="-lpthread -lm" --enable-gpl --enable-version3 \
 			 ${NONFREE} --enable-libaom --enable-libass --enable-libbluray \
@@ -672,7 +685,8 @@ ff:
 			--enable-libtwolame --enable-libvidstab --enable-libvpx --enable-libwebp \
 			--enable-libx264 --enable-libx265 --enable-libxml2 --enable-libmysofa \
 			--enable-libdrm --enable-vaapi --enable-libmfx --enable-nvdec --enable-nvenc \
-			 --cpu="${TUNE_CPU}" --x86asmexe=nasm \
+			--enable-opencl --enable-openssl --enable-ffnvcodec \
+			--enable-lto --cpu="${TUNE_CPU}" --x86asmexe=nasm \
 			--enable-asm  --enable-mmx --enable-mmxext --enable-sse --enable-sse2 \
 			--enable-sse3 --enable-ssse3 --enable-sse4 --enable-sse42 --enable-avx \
 			--enable-avx2 --disable-fast-unaligned --enable-hwaccel=h264_nvdec \
