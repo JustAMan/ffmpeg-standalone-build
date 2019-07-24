@@ -58,6 +58,7 @@ WEBP=$(PREFIX)/lib/libwebp.so
 PARANOIA=$(PREFIX)/lib/libcdio_paranoia.so
 CDIO=$(PREFIX)/lib/libcdio.so
 LIBVA=$(PREFIX)/lib/libva.so
+MFX=$(PREFIX)/lib/libmfx.so
 #EOLibs
 
 $(PREFIX)/.prefix:
@@ -634,7 +635,20 @@ $(LIBVA): $(LIBVA_DIR)/config.h
 	$(MAKE) -C $(LIBVA_DIR) -j $(CORES) || $(MAKE) -C $(LIBVA_DIR)
 	$(MAKE) -C $(LIBVA_DIR) install
 
-all: $(LIBVA)
+MFX_DIR := $(CURDIR)/MediaSDK
+$(MFX_DIR)/build/Makefile: $(TOOLS) $(CMAKE)
+	@echo Configuring mfx
+	rm -f $@
+	mkdir -p $(MFX_DIR)/build
+	cd $(MFX_DIR)/build && \
+		$(CMAKE) -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(PREFIX) .. -DBUILD_SAMPLES=OFF -DENABLE_OPENCL=OFF
+$(MFX): $(MFX_DIR)/build/Makefile
+	@echo Building mfx 
+	$(MAKE) -C $(MFX_DIR)/build -j $(CORES) || $(MAKE) -C $(MFX_DIR)/build
+	$(MAKE) -C $(MFX_DIR)/build install
+
+
+all: $(MFX)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:
@@ -651,7 +665,8 @@ ff:
 			--enable-librubberband --enable-libsrt --enable-libtheora \
 			--enable-libtwolame --enable-libvidstab --enable-libvpx --enable-libwebp \
 			--enable-libx264 --enable-libx265 --enable-libxml2 --enable-libmysofa \
-			--enable-libdrm --enable-vaapi --cpu="${TUNE_CPU}" --x86asmexe=nasm \
+			--enable-libdrm --enable-vaapi --enable-libmfx --enable-nvdec --enable-nvenc \
+			 --cpu="${TUNE_CPU}" --x86asmexe=nasm \
 			--enable-asm  --enable-mmx --enable-mmxext --enable-sse --enable-sse2 \
 			--enable-sse3 --enable-ssse3 --enable-sse4 --enable-sse42 --enable-avx \
 			--enable-avx2 --disable-fast-unaligned --enable-hwaccel=h264_nvdec \

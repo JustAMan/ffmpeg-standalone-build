@@ -97,3 +97,6 @@
 [submodule "libva"]
 	path = libva
 	url = https://github.com/01org/libva
+[submodule "MediaSDK"]
+	path = MediaSDK
+	url = https://github.com/Intel-Media-SDK/MediaSDK.git
