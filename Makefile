@@ -52,6 +52,8 @@ VAMP_SDK=$(PREFIX)/lib/libvamp-sdk.so
 SRT=$(PREFIX)/lib/libsrt.so
 OPENSSL=$(PREFIX)/lib/libssl.so
 THEORA=$(PREFIX)/lib/libtheora.so
+TWOLAME=$(PREFIX)/lib/libtwolame.so
+#EOLibs
 
 $(PREFIX)/.prefix:
 	mkdir -p "$(PREFIX)"
@@ -554,9 +556,23 @@ $(THEORA): $(THEORA_DIR)/config.h
 	@echo Building theora 
 	$(MAKE) -C $(THEORA_DIR) -j $(CORES) || $(MAKE) -C $(THEORA_DIR)
 	$(MAKE) -C $(THEORA_DIR) install
+
+TWOLAME_DIR := $(CURDIR)/twolame
+$(TWOLAME_DIR)/Makefile: $(TOOLS)
+	@echo Configuring twolame 
+	rm -f $@
+	cd $(TWOLAME_DIR) && NOCONFIGURE=1 ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure --prefix=$(PREFIX) --disable-dependency-tracking --disable-static
+	# hack to disable building docs, as they fail the build in non-maintaner mode
+	echo 'all:' > $(TWOLAME_DIR)/doc/Makefile
+	echo 'install:' >> $(TWOLAME_DIR)/doc/Makefile
+$(TWOLAME): $(TWOLAME_DIR)/Makefile
+	@echo Building twolame
+	$(MAKE) -C $(TWOLAME_DIR) -j $(CORES) || $(MAKE) -C $(TWOLAME_DIR)
+	$(MAKE) -C $(TWOLAME_DIR) install
+		
 	
-	
-all: $(THEORA)
+all: $(TWOLAME)
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
 ff:

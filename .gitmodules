@@ -79,3 +79,6 @@
 [submodule "openssl"]
 	path = openssl
 	url = https://github.com/openssl/openssl.git
+[submodule "twolame"]
+	path = twolame
+	url = https://github.com/njh/twolame.git
