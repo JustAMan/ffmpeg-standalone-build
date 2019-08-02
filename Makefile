@@ -1,8 +1,7 @@
 CORES := 8
 TUNE_CPU := core2
 PREFIX = $(CURDIR)/prefix
-#NONFREE := --enable-nonfree --enable-libfdk-aac # fdk-aac has building problems
-NONFREE := --enable-nonfree --enable-openssl --enable-libsrt # set to empty if plan to redistribute
+NONFREE := --enable-nonfree --enable-openssl --enable-libsrt --enable-libfdk-aac # set to empty if plan to redistribute
 
 export PATH := $(PREFIX)/bin:$(PATH)
 export PKG_CONFIG_PATH := $(PREFIX)/lib/pkgconfig:$(PKG_CONFIG_PATH)
@@ -40,7 +39,7 @@ PKGCONFIG=$(PREFIX)/bin/pkg-config
 LIBDRM=$(PREFIX)/lib/libdrm.so
 PCIACCESS=$(PREFIX)/lib/libpciaccess.so
 XORGMACRO=$(PREFIX)/share/pkgconfig/xorg-macros.pc
-#FDK_AAC=$(PREFIX)/lib/libfdk-aac.so
+FDK_AAC=$(PREFIX)/lib/libfdk-aac.so
 MYSOFA=$(PREFIX)/lib/libmysofa.so
 OPENJPEG=$(PREFIX)/lib/libopenjp2.so
 OPENMPT=$(PREFIX)/lib/libopenmpt.so
@@ -417,16 +416,16 @@ $(LIBDRM): $(LIBDRM_DIR)/config.h
 	$(MAKE) -C $(LIBDRM_DIR) -j $(CORES) || $(MAKE) -C $(LIBDRM_DIR)
 	$(MAKE) -C $(LIBDRM_DIR) install
 
-#FDK_AAC_DIR := $(CURDIR)/fdk-aac
-#$(FDK_AAC_DIR)/Makefile: $(TOOLS)
-#	@echo Configuring fdk-aac
-#	rm -f $@
-#	cd $(FDK_AAC_DIR) && libtoolize && ./autogen.sh && \
-#		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking --disable-static --disable-example
-#$(FDK_AAC): $(FDK_AAC_DIR)/Makefile
-#	@echo Building fdk-aac 
-#	$(MAKE) -C $(FDK_AAC_DIR) -j $(CORES) || $(MAKE) -C $(FDK_AAC_DIR)
-#	$(MAKE) -C $(FDK_AAC_DIR) install
+FDK_AAC_DIR := $(CURDIR)/fdk-aac
+$(FDK_AAC_DIR)/Makefile: $(TOOLS)
+	@echo Configuring fdk-aac
+	rm -f $@
+	cd $(FDK_AAC_DIR) && libtoolize && ./autogen.sh && \
+		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --disable-dependency-tracking --disable-static --disable-example
+$(FDK_AAC): $(FDK_AAC_DIR)/Makefile
+	@echo Building fdk-aac 
+	$(MAKE) -C $(FDK_AAC_DIR) -j $(CORES) || $(MAKE) -C $(FDK_AAC_DIR)
+	$(MAKE) -C $(FDK_AAC_DIR) install
 
 MYSOFA_DIR := $(CURDIR)/libmysofa
 $(MYSOFA_DIR)/build/Makefile: $(TOOLS)
@@ -595,6 +594,7 @@ $(VIDSTAB): $(VIDSTAB_DIR)/build/Makefile
 	@echo Building vidstab
 	$(MAKE) -C $(VIDSTAB_DIR)/build -j $(CORES) || $(MAKE) -C $(VIDSTAB_DIR)/build
 	$(MAKE) -C $(VIDSTAB_DIR)/build install
+	touch $@
 	
 WEBP_DIR := $(CURDIR)/libwebp
 $(WEBP_DIR)/Makefile: $(TOOLS)
@@ -674,7 +674,7 @@ $(ICD_LOADER): $(ICD_LOADER_DIR)/build/Makefile
 	touch $@
 
 FFMPEG_DIR := $(CURDIR)/ffmpeg
-$(FFMPEG_DIR)/config.h: $(TOOLS) $(AOM) $(ASS) $(BLURAY) $(BS2B) $(LIBDRM) $(MFX) $(LAME) $(MYSOFA) $(OPENJPEG) $(OPENMPT) $(OPUS) $(RUBBER) $(SRT) $(THEORA) $(TWOLAME) $(VIDSTAB) $(LIBVPX) $(WEBP) $(X264) $(X265) $(ICD_LOADER) $(PARANOIA) $(NVHEAD)
+$(FFMPEG_DIR)/config.h: $(TOOLS) $(AOM) $(ASS) $(BLURAY) $(BS2B) $(LIBDRM) $(MFX) $(LAME) $(MYSOFA) $(OPENJPEG) $(OPENMPT) $(OPUS) $(RUBBER) $(SRT) $(THEORA) $(TWOLAME) $(VIDSTAB) $(LIBVPX) $(WEBP) $(X264) $(X265) $(ICD_LOADER) $(PARANOIA) $(NVHEAD) $(FDK_AAC)
 	@echo Configuring ffmpeg
 	rm -f $@
 	cd "$(FFMPEG_DIR)" && \
