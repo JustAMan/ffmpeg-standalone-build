@@ -34,8 +34,7 @@ all:
 		echo 'This makes a build NOT REDISTRIBUTABLE' ; \
 		read -r -p "If that is okay for you hit Enter, otherwise hit Ctrl-C to stop" _; \
 	fi	
-	#@echo 'CORES=$(CORES) TUNE_CPU=$(TUNE_CPU) NONFREE="$(_NONFREE)" AVX="$(_AVX)"'
-	python -c "import sys;print(sys.argv)" $(MAKE) -f Makefile CORES=$(CORES) TUNE_CPU=$(TUNE_CPU) NONFREE="$(_NONFREE)" AVX="$(_AVX)"
+	$(MAKE) -f Makefile.internal CORES=$(CORES) TUNE_CPU=$(TUNE_CPU) NONFREE="$(_NONFREE)" AVX="$(_AVX)" package
 
 clean:
 	@echo clean
