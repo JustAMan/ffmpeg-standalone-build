@@ -37,7 +37,7 @@ all:
 	$(MAKE) -f Makefile.internal CORES=$(CORES) TUNE_CPU=$(TUNE_CPU) NONFREE="$(_NONFREE)" AVX="$(_AVX)" package
 
 clean:
-	@echo clean
+	$(MAKE) -f Makefile.internal clean
 
 .PHONY: all clean help
 .SILENT:
