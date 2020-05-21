@@ -74,7 +74,6 @@ $(DEPS): $(PREFIX)/.prefix
 	  autoconf \
 	  automake \
 	  build-essential \
-	  cmake \
 	  git-core \
 	  libtool \
 	  pkg-config \
@@ -129,7 +128,7 @@ $(LIBNUMA): $(LIBNUMA_DIR)/config.status
 	$(MAKE) -C $(LIBNUMA_DIR) -j $(CORES) || $(MAKE) -C $(LIBNUMA_DIR)
 	$(MAKE) -C $(LIBNUMA_DIR) install
 
-$(TOOLS): $(DEPS) $(YASM) $(NASM) $(LIBNUMA) $(PREFIX)/.prefix
+$(TOOLS): $(DEPS) $(YASM) $(NASM) $(LIBNUMA) $(PREFIX)/.prefix $(CMAKE)
 	touch "$@"
 
 X264_DIR := $(CURDIR)/libx264
@@ -145,7 +144,7 @@ $(X264): $(X264_DIR)/config.h
 X265_DIR := $(CURDIR)/libx265/build/linux
 $(X265_DIR)/Makefile: $(TOOLS) 
 	@echo Configuring x265
-	cd $(X265_DIR) && cmake -G "Unix Makefiles" "-DCMAKE_INSTALL_PREFIX=$(PREFIX)" -DENABLE_SHARED=on ../../source -DENABLE_AGGRESSIVE_CHECKS=off -DENABLE_ASSEMBLY=on -DENABLE_HDR10_PLUS=on -DHIGH_BIT_DEPTH=on -DCMAKE_BUILD_TYPE=Release -DNATIVE_BUILD=on "-DNUMA_ROOT_DIR=$(PREFIX)" "-DNUMA_INCLUDE_DIR=$(PREFIX)/include" "-DNUMA_LIBRARY=$(LIBNUMA)"
+	cd $(X265_DIR) && $(CMAKE) -G "Unix Makefiles" "-DCMAKE_INSTALL_PREFIX=$(PREFIX)" -DENABLE_SHARED=on ../../source -DENABLE_AGGRESSIVE_CHECKS=off -DENABLE_ASSEMBLY=on -DENABLE_HDR10_PLUS=on -DHIGH_BIT_DEPTH=on -DCMAKE_BUILD_TYPE=Release -DNATIVE_BUILD=on "-DNUMA_ROOT_DIR=$(PREFIX)" "-DNUMA_INCLUDE_DIR=$(PREFIX)/include" "-DNUMA_LIBRARY=$(LIBNUMA)"
 $(X265): $(X265_DIR)/Makefile
 	@echo Building x265
 	$(MAKE) -C $(X265_DIR) -j $(CORES) || $(MAKE) -C $(X265_DIR)
@@ -433,7 +432,7 @@ $(MYSOFA_DIR)/build/Makefile: $(TOOLS)
 	@echo Configuring mysofa
 	rm -f $@
 	cd $(MYSOFA_DIR)/build && \
-		cmake -DCMAKE_BUILD_TYPE=Release .. -DBUILD_TESTS=off -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_INSTALL_LIBDIR=lib
+		$(CMAKE) -DCMAKE_BUILD_TYPE=Release .. -DBUILD_TESTS=off -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_INSTALL_LIBDIR=lib
 $(MYSOFA): $(MYSOFA_DIR)/build/Makefile
 	@echo Building mysofa 
 	$(MAKE) -C $(MYSOFA_DIR)/build -j $(CORES) || $(MAKE) -C $(MYSOFA_DIR)/build
@@ -444,7 +443,7 @@ $(OPENJPEG_DIR)/build/Makefile: $(TOOLS)
 	@echo Configuring openjpeg
 	mkdir -p $(OPENJPEG_DIR)/build
 	cd $(OPENJPEG_DIR)/build && \
-		cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_INSTALL_LIBDIR=lib
+		$(CMAKE) .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_INSTALL_LIBDIR=lib
 $(OPENJPEG): $(OPENJPEG_DIR)/build/Makefile
 	@echo Building openjpeg 
 	$(MAKE) -C $(OPENJPEG_DIR)/build -j $(CORES) || $(MAKE) -C $(OPENJPEG_DIR)/build
