@@ -109,3 +109,9 @@
 [submodule "xorg-libpciaccess"]
 	path = xorg-libpciaccess
 	url = https://github.com/freedesktop/xorg-libpciaccess
+[submodule "libdrm"]
+	path = libdrm
+	url = https://gitlab.freedesktop.org/mesa/drm.git
+[submodule "nasm"]
+	path = nasm
+	url = https://repo.or.cz/nasm.git
