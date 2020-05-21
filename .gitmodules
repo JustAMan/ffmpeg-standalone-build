@@ -1,6 +1,6 @@
 [submodule "libx264"]
 	path = libx264
-	url = https://git.videolan.org/git/x264
+	url = https://code.videolan.org/videolan/x264
 [submodule "libx265"]
 	path = libx265
 	url = https://github.com/videolan/x265.git
@@ -42,7 +42,7 @@
 	url = https://code.videolan.org/videolan/libbluray.git
 [submodule "libudfread"]
 	path = libudfread
-	url = https://git.videolan.org/git/libudfread.git
+	url = https://code.videolan.org/videolan/libudfread.git
 [submodule "libbs2b"]
 	path = libbs2b
 	url = https://github.com/alexmarsev/libbs2b.git

@@ -83,7 +83,8 @@ $(DEPS): $(PREFIX)/.prefix
 	  gperf \
 	  gettext \
 	  autopoint \
-	  autogen
+	  autogen \
+	  python-minimal
 	touch "$@"
 
 $(CMAKE): $(CURDIR)/cmake-3.15.0-Linux-x86_64.tar.gz
