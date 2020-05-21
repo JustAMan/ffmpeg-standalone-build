@@ -106,3 +106,6 @@
 [submodule "OpenCL-ICD-Loader"]
 	path = OpenCL-ICD-Loader
 	url = https://github.com/KhronosGroup/OpenCL-ICD-Loader.git
+[submodule "xorg-libpciaccess"]
+	path = xorg-libpciaccess
+	url = https://github.com/freedesktop/xorg-libpciaccess

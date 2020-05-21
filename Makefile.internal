@@ -393,7 +393,7 @@ $(XORGMACRO): $(XORGMACRO_DIR)/Makefile
 	$(MAKE) -C $(XORGMACRO_DIR) -j $(CORES) || $(MAKE) -C $(XORGMACRO_DIR)
 	$(MAKE) -C $(XORGMACRO_DIR) install
 
-PCIACCESS_DIR := $(CURDIR)/libpciaccess
+PCIACCESS_DIR := $(CURDIR)/xorg-libpciaccess
 $(PCIACCESS_DIR)/config.h: $(TOOLS) $(XORGMACRO)
 	@echo Configuring pciaccess
 	rm -f $@
