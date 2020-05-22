@@ -4,7 +4,7 @@ PREFIX = $(CURDIR)/prefix
 NONFREE := --enable-nonfree --enable-openssl --enable-libsrt --enable-libfdk-aac # set to empty if plan to redistribute
 
 export PATH := $(PREFIX)/bin:$(PATH)
-export PKG_CONFIG_PATH := $(PREFIX)/lib/pkgconfig:$(PKG_CONFIG_PATH)
+export PKG_CONFIG_PATH := $(PREFIX)/lib/pkgconfig:$(PREFIX)/lib/x86_64-linux-gnu/pkgconfig:$(PKG_CONFIG_PATH)
 export ACLOCAL_PATH := /usr/share/aclocal
 
 DEPS=$(CURDIR)/dependencies.stamp
@@ -83,7 +83,8 @@ $(DEPS): $(PREFIX)/.prefix
 	  gettext \
 	  autopoint \
 	  autogen \
-	  python-minimal
+	  python-minimal \
+	  meson
 	touch "$@"
 
 $(CMAKE): $(CURDIR)/cmake-3.15.0-Linux-x86_64.tar.gz
@@ -95,6 +96,8 @@ $(CMAKE): $(CURDIR)/cmake-3.15.0-Linux-x86_64.tar.gz
 NASM_DIR := nasm
 $(NASM_DIR)/config.status: $(DEPS)
 	@echo Configuring nasm
+	# workaround that "make install" wants manpages built but we don't want to install man building toolchain
+	touch $(NASM_DIR)/nasm.1 $(NASM_DIR)/ndisasm.1
 	cd $(NASM_DIR) && \
 		./autogen.sh && \
 		CFLAGS='-mtune=native' ./configure "--prefix=$(PREFIX)"
@@ -406,11 +409,10 @@ LIBDRM_DIR := $(CURDIR)/libdrm
 $(LIBDRM_DIR)/config.h: $(TOOLS) $(PCIACCESS)
 	@echo Configuring libdrm
 	cd $(LIBDRM_DIR) && \
-		CFLAGS="-mtune=$(TUNE_CPU)" ./configure "--prefix=$(PREFIX)" --enable-shared --disable-static --disable-dependency-tracking --enable-intel --enable-radeon --enable-amdgpu --enable-nouveau --disable-cairo-tests --disable-manpages --disable-valgrind
+		meson build --prefix "$(PREFIX)"
 $(LIBDRM): $(LIBDRM_DIR)/config.h
 	@echo Building libdrm 
-	$(MAKE) -C $(LIBDRM_DIR) -j $(CORES) || $(MAKE) -C $(LIBDRM_DIR)
-	$(MAKE) -C $(LIBDRM_DIR) install
+	ninja -C $(LIBDRM_DIR)/build install
 
 FDK_AAC_DIR := $(CURDIR)/fdk-aac
 $(FDK_AAC_DIR)/Makefile: $(TOOLS)
